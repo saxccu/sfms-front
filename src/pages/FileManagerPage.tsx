@@ -9,8 +9,6 @@ import ActionDropdown, {
 
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("File Manager");
-
 type BranchOut = {
   id: number;
   name: string;
@@ -60,6 +58,7 @@ type UserSearchOut = {
 };
 
 export default function FileManagerPage() {
+  usePageTitle("File Manager");
   const { user } = useAuth();
   const wait = useWait();
   const [q, setQ] = useState("");

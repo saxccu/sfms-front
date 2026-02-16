@@ -10,9 +10,8 @@ import { setAccessToken } from "../lib/storage";
 
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("Login");
-
 export default function LoginPage() {
+  usePageTitle("Login");
   const navigate = useNavigate();
   const { refresh } = useAuth();
   const wait = useWait();

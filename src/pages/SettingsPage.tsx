@@ -1,8 +1,7 @@
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("Settings");
-
 export default function SettingsPage() {
+  usePageTitle("Settings");
   return (
     <div className="space-y-2">
       <div className="text-lg font-semibold text-slate-900">Settings</div>

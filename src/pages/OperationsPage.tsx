@@ -1,8 +1,7 @@
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("Operations");
-
 export default function OperationsPage() {
+  usePageTitle("Operations");
   return (
     <div>
       <h1 style={{ marginTop: 0 }}>Operations</h1>

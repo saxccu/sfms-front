@@ -8,8 +8,6 @@ import ActionDropdown, {
 } from "../components/ActionDropdown";
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("Branch");
-
 type BranchOut = {
   id: number;
   name: string;
@@ -65,6 +63,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function BranchPage() {
+  usePageTitle("Branch");
   const { user } = useAuth();
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<BranchOut[]>([]);

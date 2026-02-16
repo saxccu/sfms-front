@@ -6,8 +6,6 @@ import ActionDropdown, {
 import { ApiError, apiFetch, apiFetchBlob } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("Shared Files");
-
 type SharedWithMeOut = {
   id: number;
   file_name: string;
@@ -45,6 +43,7 @@ function formatDateOnly(iso: string | null | undefined): string {
 }
 
 export default function SharedFilesPage() {
+  usePageTitle("Shared Files");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<SharedWithMeOut[]>([]);
   const [loading, setLoading] = useState(true);

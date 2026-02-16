@@ -4,9 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { ApiError, apiFetch } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("Dashboard");
-
 export default function DashboardPage() {
+  usePageTitle("Dashboard");
   const { user, loading, error } = useAuth();
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN";

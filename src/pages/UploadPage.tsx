@@ -6,8 +6,6 @@ import { ApiError, apiFetchForm } from "../lib/api";
 import { useWait } from "../context/WaitContext";
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("Upload");
-
 type FileOut = {
   id: number;
   file_name: string;
@@ -19,6 +17,7 @@ type FileOut = {
 };
 
 export default function UploadPage() {
+  usePageTitle("Upload");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FileOut | null>(null);

@@ -3,8 +3,6 @@ import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 
-usePageTitle("Meetings");
-
 type Meeting = {
   id: number;
   title: string | null;
@@ -24,6 +22,7 @@ function sanitizeRoom(value?: string | null): string | null {
 }
 
 export default function MeetPage() {
+  usePageTitle("Meetings");
   const { user } = useAuth();
 
   // Scheduling state
