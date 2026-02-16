@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
+import { usePageTitle } from "../hooks/usePageTitle";
+
+usePageTitle("Meetings");
 
 type Meeting = {
   id: number;

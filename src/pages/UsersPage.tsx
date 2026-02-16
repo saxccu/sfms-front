@@ -3,6 +3,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { ApiError, apiFetch } from '../lib/api'
 import ActionDropdown, { type ActionDropdownItem } from '../components/ActionDropdown'
+import { usePageTitle } from '../hooks/usePageTitle';
+
+usePageTitle("Users");
+
 
 type BranchOut = {
   id: number

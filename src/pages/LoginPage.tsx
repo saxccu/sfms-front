@@ -1,57 +1,63 @@
-import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { useAuth } from '../context/AuthContext'
-import { useWait } from '../context/WaitContext'
-import { ApiError } from '../lib/api'
-import { login } from '../lib/auth'
-import { setAccessToken } from '../lib/storage'
+import { useAuth } from "../context/AuthContext";
+import { useWait } from "../context/WaitContext";
+import { ApiError } from "../lib/api";
+import { login } from "../lib/auth";
+import { setAccessToken } from "../lib/storage";
+
+import { usePageTitle } from "../hooks/usePageTitle";
+
+usePageTitle("Login");
 
 export default function LoginPage() {
-  const navigate = useNavigate()
-  const { refresh } = useAuth()
-  const wait = useWait()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const { refresh } = useAuth();
+  const wait = useWait();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     try {
-      const reason = localStorage.getItem('sfms_signout_reason')
-      if (reason === 'idle') {
-        setNotice('You have been signed out due to inactivity. Please sign in again.')
+      const reason = localStorage.getItem("sfms_signout_reason");
+      if (reason === "idle") {
+        setNotice(
+          "You have been signed out due to inactivity. Please sign in again.",
+        );
       }
       if (reason) {
-        localStorage.removeItem('sfms_signout_reason')
+        localStorage.removeItem("sfms_signout_reason");
       }
     } catch {
       // ignore
     }
-  }, [])
+  }, []);
 
   async function onSubmit(e: FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    wait.start('Signing in…')
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    wait.start("Signing in…");
 
     try {
-      const token = await login(username, password)
-      setAccessToken(token.access_token)
-      await refresh()
-      navigate('/', { replace: true })
+      const token = await login(username, password);
+      setAccessToken(token.access_token);
+      await refresh();
+      navigate("/", { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(`${err.message}${err.bodyText ? ` - ${err.bodyText}` : ''}`)
+        setError(`${err.message}${err.bodyText ? ` - ${err.bodyText}` : ""}`);
       } else {
-        setError('Login failed')
+        setError("Login failed");
       }
     } finally {
-      wait.stop()
-      setLoading(false)
+      wait.stop();
+      setLoading(false);
     }
   }
 
@@ -60,8 +66,7 @@ export default function LoginPage() {
       <div className="grid h-full grid-cols-1 lg:grid-cols-[1.35fr_0.65fr]">
         <div
           className="relative hidden bg-cover bg-center lg:block"
-          style={{ backgroundImage: "url('/login-hero.jpg.jpg')" }}
-        >
+          style={{ backgroundImage: "url('/login-hero.jpg.jpg')" }}>
           <div className="absolute inset-0 bg-slate-900/55" />
           <div className="absolute inset-0 opacity-50 [background:radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.18),transparent_55%),radial-gradient(circle_at_70%_65%,rgba(255,255,255,0.12),transparent_55%)]" />
 
@@ -70,18 +75,26 @@ export default function LoginPage() {
               SAXCCU FILE MANAGEMENT SYSTEM
             </div>
             <div className="mt-4 max-w-md text-sm text-white/80">
-              Secure file access, sharing, and document workflows across branches.
+              Secure file access, sharing, and document workflows across
+              branches.
             </div>
-            
           </div>
         </div>
 
         <div className="flex items-center justify-center bg-slate-100 px-4 py-6 dark:bg-slate-900">
           <div className="w-full max-w-xs">
             <div className="flex flex-col items-center text-center">
-              <img src="/logo.png" alt="Logo" className="h-24 w-24 object-contain" />
-              <div className="mt-4 text-sm font-semibold text-slate-900 dark:text-slate-100">Samartex Co-Operative Credit Union Limited</div>
-              <div className="mt-2 text-xs text-slate-500 dark:text-slate-300">Welcome to SFMS. Please sign in to your account</div>
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="h-24 w-24 object-contain"
+              />
+              <div className="mt-4 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Samartex Co-Operative Credit Union Limited
+              </div>
+              <div className="mt-2 text-xs text-slate-500 dark:text-slate-300">
+                Welcome to SFMS. Please sign in to your account
+              </div>
             </div>
 
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
@@ -93,7 +106,9 @@ export default function LoginPage() {
                 ) : null}
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-200">Username</label>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-200">
+                    Username
+                  </label>
                   <input
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -106,7 +121,9 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-200">Password</label>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-200">
+                    Password
+                  </label>
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -119,9 +136,8 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? 'Signing in...' : 'Log In'}
+                  className="w-full rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">
+                  {loading ? "Signing in..." : "Log In"}
                 </button>
 
                 {error ? (
@@ -135,5 +151,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
