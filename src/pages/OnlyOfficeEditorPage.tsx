@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 import { ApiError, apiFetch } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -19,7 +19,6 @@ type OnlyOfficeConfigOut = {
 
 export default function OnlyOfficeEditorPage() {
   usePageTitle("OnlyOffice");
-  const navigate = useNavigate();
   const filePath = useQueryParam("file_path");
   const holderRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<any>(null);
