@@ -1,7 +1,10 @@
 import { clearAccessToken, getAccessToken } from "./storage";
 
+const defaultHost =
+  typeof window !== "undefined" ? window.location.hostname : "localhost";
+
 const API_BASE_URL =
-  (import.meta as any).env?.VITE_API_BASE_URL ?? "http://localhost:8080";
+  (import.meta as any).env?.VITE_API_BASE_URL ?? `http://${defaultHost}:8000`;
 
 export class ApiError extends Error {
   status: number;
