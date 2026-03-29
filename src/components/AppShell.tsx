@@ -1,34 +1,52 @@
 import { useEffect, useState } from 'react'
-
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  LayoutDashboard,
+  FolderOpen,
+  Share2,
+  Video,
+  Users,
+  Building2,
+  Settings,
+  Search,
+  Sun,
+  Moon,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  Bell,
+} from 'lucide-react'
 
 import ActionDropdown, { type ActionDropdownItem } from './ActionDropdown'
 import { useAuth } from '../context/AuthContext'
-import { apiFetch } from '../lib/api'
 import { clearAccessToken } from '../lib/storage'
 import { getEffectiveTheme, setTheme, type ThemeMode } from '../lib/theme'
 
 type NavItem = {
   to: string
   label: string
+  icon: any
   roles?: string[]
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/file-manager', label: 'File Manager' },
-  { to: '/shared-files', label: 'Shared files' },
-  { to: '/meet', label: 'Meeting', roles: ['SUPER_ADMIN', 'BRANCH_MANAGER'] },
-  { to: '/users', label: 'Users', roles: ['SUPER_ADMIN', 'BRANCH_MANAGER'] },
-  { to: '/branches', label: 'Branches', roles: ['SUPER_ADMIN'] },
-  { to: '/settings', label: 'Settings', roles: ['SUPER_ADMIN'] },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/file-manager', label: 'File Manager', icon: FolderOpen },
+  { to: '/shared-files', label: 'Shared files', icon: Share2 },
+  { to: '/meet', label: 'Meeting', icon: Video, roles: ['SUPER_ADMIN', 'BRANCH_MANAGER'] },
+  { to: '/users', label: 'Users', icon: Users, roles: ['SUPER_ADMIN', 'BRANCH_MANAGER'] },
+  { to: '/branches', label: 'Branches', icon: Building2, roles: ['SUPER_ADMIN'] },
+  { to: '/settings', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN'] },
 ]
 
 export default function AppShell() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
-  const [branchName, setBranchName] = useState<string | null>(null)
   const [theme, setThemeState] = useState<ThemeMode>(() => getEffectiveTheme())
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   function logout() {
     clearAccessToken()
@@ -52,32 +70,10 @@ export default function AppShell() {
     },
   ]
 
+
   useEffect(() => {
-    let cancelled = false
-
-    async function loadBranchName() {
-      if (!user?.branch_id) {
-        setBranchName(null)
-        return
-      }
-      try {
-        const branches = await apiFetch<Array<{ id: number; name: string }>>('/branches', { method: 'GET' }, { auth: true })
-        const match = branches.find((b) => b.id === user.branch_id)
-        if (!cancelled) {
-          setBranchName(match?.name ?? null)
-        }
-      } catch {
-        if (!cancelled) {
-          setBranchName(null)
-        }
-      }
-    }
-
-    loadBranchName()
-    return () => {
-      cancelled = true
-    }
-  }, [user?.branch_id])
+    setIsMobileMenuOpen(false)
+  }, [location.pathname])
 
   function toggleTheme() {
     const next: ThemeMode = theme === 'dark' ? 'light' : 'dark'
@@ -85,105 +81,203 @@ export default function AppShell() {
     setThemeState(next)
   }
 
+  const currentPageLabel = NAV_ITEMS.find((item) => item.to === location.pathname)?.label || 'Dashboard'
+
   return (
-    <div className="flex h-full min-h-screen bg-slate-50 dark:bg-slate-950">
-      <aside className="w-64 border-r border-white/15 bg-[#001777]">
-        <div className="flex items-center gap-3 px-5 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white">
-            F
+    <div className="flex h-full min-h-screen bg-lemon-cream dark:bg-slate-950 transition-colors duration-300">
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar */}
+      <motion.aside
+        initial={false}
+        animate={{
+          width: isSidebarOpen ? 280 : 88,
+          x: isMobileMenuOpen ? 0 : (window.innerWidth < 1024 ? -280 : 0)
+        }}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col glass-effect lg:static lg:translate-x-0 ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex h-20 items-center justify-between px-6">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-primary text-white shadow-lg shadow-emerald-200 dark:shadow-none">
+              <FolderOpen size={20} />
+            </div>
+            {isSidebarOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="whitespace-nowrap font-bold text-slate-900 dark:text-white"
+              >
+                FileCloud <span className="text-emerald-primary text-xs font-medium">PRO</span>
+              </motion.div>
+            )}
           </div>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold text-white">File Manager</div>
-            <div className="text-xs text-white/70">Enterprise</div>
-          </div>
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="hidden lg:flex h-8 w-8 items-center justify-center rounded-full hover:bg-emerald-50 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+          >
+            {isSidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+          </button>
         </div>
 
-        <nav className="px-3 py-2">
-          <div className="space-y-1">
-            {NAV_ITEMS.map((item) => {
-              const allowed = !item.roles || (role ? item.roles.includes(role) : false)
+        <nav className="flex-1 space-y-2 px-4 py-4 overflow-y-auto">
+          {NAV_ITEMS.map((item) => {
+            const allowed = !item.roles || (role ? item.roles.includes(role) : false)
+            if (!allowed) return null
 
-              if (!allowed) {
-                return null
-              }
+            const Icon = item.icon
 
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-4 rounded-2xl px-4 py-3.5 transition-all duration-200 group ${
                     isActive
-                      ? 'flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-sm font-medium text-white'
-                      : 'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10'
-                  }
-                  end
-                >
-                  <span className="h-2 w-2 rounded-full bg-current opacity-60" />
-                  {item.label}
-                </NavLink>
-              )
-            })}
-          </div>
-        </nav>
-      </aside>
-
-      <div className="flex flex-1 flex-col">
-        <header className="border-b border-white/15 bg-[#fe0000] px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-lg font-semibold text-white">Dashboard</div>
-              <div className="text-sm text-white/80">
-                {user ? `Welcome back, ${user.name}.` : 'Loading user…'}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white hover:bg-white/20"
-                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {theme === 'dark' ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
-                    <path d="M12 3v2" />
-                    <path d="M12 19v2" />
-                    <path d="M4.22 4.22l1.42 1.42" />
-                    <path d="M18.36 18.36l1.42 1.42" />
-                    <path d="M3 12h2" />
-                    <path d="M19 12h2" />
-                    <path d="M4.22 19.78l1.42-1.42" />
-                    <path d="M18.36 5.64l1.42-1.42" />
-                    <circle cx="12" cy="12" r="4" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z" />
-                  </svg>
-                )}
-              </button>
-
-              <ActionDropdown
-                items={profileItems}
-                buttonLabel={
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white dark:bg-white dark:text-slate-900">
-                      {initials || 'U'}
-                    </div>
-                    <div className="hidden text-left md:block">
-                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight">{user?.name ?? 'User'}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 leading-tight">{user ? `${user.role} · ${branchName ?? `Branch ${user.branch_id}`}` : ''}</div>
-                    </div>
-                  </div>
+                      ? 'bg-emerald-primary text-white shadow-lg shadow-emerald-100 dark:shadow-none font-semibold'
+                      : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-400 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300'
+                  }`
                 }
-                buttonClassName="!bg-white !text-slate-700 !shadow-none !px-2 !py-1.5 !rounded-full border border-slate-200 hover:!bg-slate-100 dark:!bg-slate-950 dark:!text-slate-200 dark:!border-slate-800 dark:hover:!bg-slate-900"
-                menuClassName="!w-[220px]"
+                end
+              >
+                <Icon size={22} className="shrink-0" />
+                {isSidebarOpen && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="whitespace-nowrap"
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+                {!isSidebarOpen && (
+                  <div className="absolute left-full ml-4 hidden rounded-lg bg-slate-900 px-2 py-1 text-xs text-white group-hover:block whitespace-nowrap z-50">
+                    {item.label}
+                  </div>
+                )}
+              </NavLink>
+            )
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
+           {isSidebarOpen ? (
+             <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-3xl p-4">
+                <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Storage</div>
+                <div className="mt-2 h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-primary w-[65%]" />
+                </div>
+                <div className="mt-2 text-xs text-slate-600 dark:text-slate-400 flex justify-between">
+                  <span>12.4 GB of 20 GB</span>
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-500">65%</span>
+                </div>
+             </div>
+           ) : (
+             <div className="flex justify-center">
+                <div className="h-10 w-1 rounded-full bg-emerald-primary" />
+             </div>
+           )}
+        </div>
+      </motion.aside>
+
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col min-w-0">
+        <header className="sticky top-0 z-30 h-20 flex items-center justify-between px-6 glass-effect border-b border-slate-200/50 dark:border-slate-800/50">
+          <div className="flex items-center gap-4 flex-1">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="hidden md:flex relative max-w-md w-full ml-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search files, folders..."
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 dark:bg-slate-900/50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-emerald-primary/20 transition-all outline-none"
               />
             </div>
           </div>
+
+          <div className="flex items-center gap-3">
+             <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 transition-all shadow-sm"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            <button className="p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 transition-all shadow-sm">
+              <Bell size={20} />
+            </button>
+
+            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
+
+            <ActionDropdown
+              items={profileItems}
+              buttonLabel={
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white dark:bg-emerald-primary shadow-md">
+                    {initials || 'U'}
+                  </div>
+                  <div className="hidden text-left xl:block">
+                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                      {user?.name ?? 'User'}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-tighter font-semibold">
+                      {role?.replace('_', ' ')}
+                    </div>
+                  </div>
+                </div>
+              }
+              buttonClassName="!bg-transparent !border-none !shadow-none !p-0 !text-inherit"
+              menuClassName="!w-[220px] !rounded-2xl !mt-2 !shadow-2xl !border-slate-100 dark:!border-slate-800"
+            />
+          </div>
         </header>
 
-        <main className="flex-1 px-6 py-6">
-          <Outlet />
+        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="mb-8 flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
+                  {currentPageLabel}
+                </h1>
+                <p className="mt-1 text-slate-500 dark:text-slate-400">
+                   {user ? `Hello ${user.name}, welcome back!` : 'Manage your cloud workspace'}
+                </p>
+              </div>
+
+              {location.pathname === '/file-manager' && (
+                <button className="flex items-center gap-2 px-5 py-2.5 bg-emerald-primary text-white rounded-2xl font-semibold shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all">
+                   <FolderOpen size={18} />
+                   <span>Upload New</span>
+                </button>
+              )}
+            </div>
+
+            <Outlet />
+          </motion.div>
         </main>
       </div>
     </div>

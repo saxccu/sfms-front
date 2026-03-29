@@ -1,4 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Folder,
+  File as FileIcon,
+  Search,
+  Plus,
+  Upload,
+  Grid,
+  List,
+  Calendar,
+  ChevronRight,
+  Home,
+  MoreVertical,
+  Download,
+  Share2,
+  Edit3,
+  Trash2,
+  ExternalLink,
+  Filter,
+  X,
+  Users,
+  Clock,
+  Link,
+  Copy,
+  UserPlus
+} from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { useWait } from "../context/WaitContext";
@@ -64,7 +90,7 @@ export default function FileManagerPage() {
   const [q, setQ] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [branches, setBranches] = useState<BranchOut[]>([]);
   const [branchId, setBranchId] = useState<number | null>(null);
   const [branchError, setBranchError] = useState<string | null>(null);
@@ -87,7 +113,6 @@ export default function FileManagerPage() {
   >({});
 
   const [clipboard, setClipboard] = useState<ClipboardState>(null);
-
   const [notice, setNotice] = useState<string | null>(null);
 
   const [shareOpen, setShareOpen] = useState(false);
@@ -624,10 +649,6 @@ export default function FileManagerPage() {
     setTimeout(() => setNotice(null), 4000);
   }
 
-  function closeShareDialog() {
-    if (shareLoading) return;
-    setShareOpen(false);
-  }
 
   async function submitShare() {
     if (!shareFilePath) {
@@ -754,11 +775,6 @@ export default function FileManagerPage() {
     setAssignOpen(true);
   }
 
-  function closeAssignDialog() {
-    if (assignLoading) return;
-    setAssignOpen(false);
-    setAssignFolder(null);
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -812,10 +828,6 @@ export default function FileManagerPage() {
     setUploadOpen(true);
   }
 
-  function closeUploadDialog() {
-    if (uploadLoading) return;
-    setUploadOpen(false);
-  }
 
   async function submitUpload() {
     const dateValue = uploadDate.trim();
@@ -1048,10 +1060,6 @@ export default function FileManagerPage() {
     setCreateRootOpen(true);
   }
 
-  function closeCreateRootDialog() {
-    if (createRootLoading) return;
-    setCreateRootOpen(false);
-  }
 
   function openCreateSubDialog() {
     setCreateSubError(null);
@@ -1059,10 +1067,6 @@ export default function FileManagerPage() {
     setCreateSubOpen(true);
   }
 
-  function closeCreateSubDialog() {
-    if (createSubLoading) return;
-    setCreateSubOpen(false);
-  }
 
   async function submitCreateRootFolder() {
     const name = newRootFolderName.trim();
@@ -1114,1176 +1118,617 @@ export default function FileManagerPage() {
     }
   }
 
+  function fmtSize(bytes?: number | null): string {
+    if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return "—";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let v = bytes;
+    let i = 0;
+    while (v >= 1024 && i < units.length - 1) {
+      v /= 1024;
+      i += 1;
+    }
+    const fixed = i === 0 ? 0 : v >= 10 ? 1 : 2;
+    return `${v.toFixed(fixed)} ${units[i]}`;
+  }
+
+  const filteredItems = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const source = currentFolder ? folderEntries : rootFolders.map(f => ({ ...f, entry_type: "folder" } as FolderEntryOut));
+
+    return source.filter((e) => {
+      if (!query) return true;
+      const nameOk = e.name.toLowerCase().includes(query);
+      const memberOk = (e.member_id ?? "").toString().toLowerCase().includes(query);
+      return nameOk || memberOk;
+    });
+  }, [q, currentFolder, folderEntries, rootFolders]);
+
+  const getEntryActions = (e: FolderEntryOut): ActionDropdownItem[] => {
+    if (e.entry_type === "folder") {
+      return [
+        {
+          label: "Open",
+          icon: ExternalLink,
+          onClick: () => openFolder({
+            branch_id: branchId ?? 0,
+            name: e.name,
+            relative_path: e.relative_path,
+          }),
+        },
+        { type: "separator" },
+        { label: "Copy", icon: Copy, onClick: () => copyEntry(e) },
+        { label: "Cut", icon: Edit3, onClick: () => cutEntry(e) },
+        {
+          label: "Paste",
+          icon: Plus,
+          disabled: !clipboard,
+          onClick: () => void pasteInto(e.relative_path),
+        },
+        ...(isBranchManager && !currentFolder ? [
+          {
+            label: "Assign folder",
+            icon: UserPlus,
+            onClick: () => openAssignDialog({
+              branch_id: branchId ?? 0,
+              name: e.name,
+              relative_path: e.relative_path,
+            }),
+          },
+        ] : []) as ActionDropdownItem[],
+        ...(isSuperAdmin || isBranchManager ? [
+          { type: "separator" },
+          {
+            label: "Delete",
+            icon: Trash2,
+            danger: true,
+            disabled: folderHasFilesByPath[e.relative_path] === true,
+            onClick: () => deleteEntry(e),
+          },
+        ] : []) as ActionDropdownItem[]
+      ];
+    } else {
+      return [
+        { label: "View", icon: ExternalLink, onClick: () => viewFile(e) },
+        { label: "Download", icon: Download, onClick: () => downloadFile(e) },
+        {
+          label: "Edit",
+          icon: Edit3,
+          onClick: () => editFile(e),
+          disabled: isEditDisabledForFile(e),
+        },
+        { label: "Share", icon: Share2, onClick: () => openShareDialog(e) },
+        { type: "separator" },
+        { label: "Copy", icon: Share2, onClick: () => copyEntry(e) },
+        { label: "Cut", icon: Edit3, onClick: () => cutEntry(e) },
+        ...(isSuperAdmin || isBranchManager ? [
+          { type: "separator" },
+          { label: "Delete", icon: Trash2, danger: true, onClick: () => deleteEntry(e) },
+        ] : []) as ActionDropdownItem[]
+      ];
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <div className="text-lg font-semibold text-slate-900">
-            File Manager
-          </div>
-          <div className="text-sm text-slate-500">
-            Managing files for {branchName || "—"}
-          </div>
+    <div className="space-y-6">
+      {/* Search & Actions Bar */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex-1 max-w-2xl relative group">
+           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-primary transition-colors" size={20} />
+           <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search in current directory..."
+            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-4 focus:ring-emerald-primary/10 transition-all outline-none shadow-sm"
+           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">
-          <button
-            type="button"
-            onClick={() => setViewMode((v) => (v === "list" ? "grid" : "list"))}
-            className={`inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
-              viewMode === "grid"
-                ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
-            }`}
-            aria-label={
-              viewMode === "grid"
-                ? "Switch to list view"
-                : "Switch to grid view"
-            }>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-4 w-4">
-              <path d="M4 4h7v7H4V4z" />
-              <path d="M13 4h7v7h-7V4z" />
-              <path d="M4 13h7v7H4v-7z" />
-              <path d="M13 13h7v7h-7v-7z" />
-            </svg>
-          </button>
-          {isSuperAdmin || isBranchManager ? (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 no-scrollbar">
+           <button
+             onClick={() => setViewMode(v => v === 'list' ? 'grid' : 'list')}
+             className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+           >
+             {viewMode === 'grid' ? <List size={20} /> : <Grid size={20} />}
+           </button>
+
+           <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1" />
+
+           {isSuperAdmin || isBranchManager ? (
             <button
               onClick={openCreateRootDialog}
               disabled={isBranchManager && !!currentFolder}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-              <span className="text-base leading-none">+</span>
-              Create Parent Folder
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+            >
+              <Plus size={18} />
+              <span>Parent Folder</span>
             </button>
-          ) : null}
-          <button
-            onClick={openUploadDialog}
-            disabled={!currentFolder}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-4 w-4">
-              <path d="M12 3v12" />
-              <path d="m7 10 5 5 5-5" />
-              <path d="M5 21h14" />
-            </svg>
-            Upload
-          </button>
-          <button
-            onClick={openCreateSubDialog}
-            disabled={!branchId || !currentFolder}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-            <span className="text-base leading-none">+</span>
-            New Folder
-          </button>
+           ) : null}
+
+           <button
+             onClick={openCreateSubDialog}
+             disabled={!branchId || !currentFolder}
+             className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+           >
+             <Folder size={18} />
+             <span>Sub-Folder</span>
+           </button>
+
+           <button
+             onClick={openUploadDialog}
+             disabled={!currentFolder}
+             className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-primary text-white font-bold text-sm shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+           >
+             <Upload size={18} />
+             <span>Upload File</span>
+           </button>
         </div>
       </div>
 
-      {branchError ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {branchError}
-        </div>
-      ) : null}
+      {/* Breadcrumbs & Filters */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-1">
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+           <button
+            onClick={goToRoot}
+            className="flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-emerald-primary transition-colors whitespace-nowrap"
+           >
+             <Home size={18} />
+             <span>{branchName || "Root"}</span>
+           </button>
 
-      {rootFoldersError ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {rootFoldersError}
-        </div>
-      ) : null}
-
-      {folderEntriesError ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {folderEntriesError}
-        </div>
-      ) : null}
-
-      {notice ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {notice}
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="relative w-full md:max-w-3xl">
-          <span className="pointer-events-none absolute left-3 top-2.5 text-slate-400">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-4 w-4">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </span>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search files and folders..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
-          />
+           <AnimatePresence mode="popLayout">
+            {currentFolder && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="flex items-center gap-3"
+              >
+                <ChevronRight size={16} className="text-slate-300" />
+                <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-sm font-bold rounded-lg whitespace-nowrap">
+                   {currentFolder.name}
+                </div>
+              </motion.div>
+            )}
+           </AnimatePresence>
         </div>
 
-        <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-              From
-            </span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-              To
-            </span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setFromDate("");
-              setToDate("");
-            }}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-            Clear
-          </button>
-        </div>
-
-        <div className="w-full md:w-auto">
-          <select
-            value={branchId ?? ""}
-            onChange={(e) =>
-              setBranchId(e.target.value ? Number(e.target.value) : null)
-            }
-            disabled={!isSuperAdmin}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 md:min-w-56">
-            {branches.length === 0 ? (
-              <option value="">No branches</option>
-            ) : null}
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 text-xs text-slate-600">
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="h-3.5 w-3.5">
-            <path d="M3 12l9-9 9 9" />
-            <path d="M9 21V9h6v12" />
-          </svg>
-        </span>
-        <button
-          onClick={goToRoot}
-          className="font-medium text-slate-900 hover:underline">
-          {branchName || "—"}
-        </button>
-        <span className="text-slate-400">/</span>
-        <span className="text-slate-500">
-          {currentFolder ? currentFolder.name : "(Root)"}
-        </span>
-      </div>
-      {viewMode === "list" ? (
-        <div className="sfms-listing-card rounded-md">
-          <div className="overflow-auto">
-            <table className="sfms-table">
-              <thead className="sfms-thead">
-                <tr>
-                  <th className="sfms-th">Name</th>
-                  <th className="sfms-th">Type</th>
-                  <th className="sfms-th">Size</th>
-                  <th className="sfms-th">Modified</th>
-                  <th className="sfms-th text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rootFoldersLoading || folderEntriesLoading ? (
-                  <tr>
-                    <td
-                      className="sfms-td py-10 text-center text-sm text-slate-500 dark:text-slate-400"
-                      colSpan={5}>
-                      Loading…
-                    </td>
-                  </tr>
-                ) : currentFolder ? (
-                  folderEntries.length === 0 ? (
-                    <tr>
-                      <td
-                        className="sfms-td py-10 text-center text-sm text-slate-500 dark:text-slate-400"
-                        colSpan={5}>
-                        This folder is empty.
-                      </td>
-                    </tr>
-                  ) : (
-                    folderEntries
-                      .filter((e) => {
-                        const q2 = q.trim().toLowerCase();
-                        if (!q2) return true;
-                        const nameOk = e.name.toLowerCase().includes(q2);
-                        const memberOk = (e.member_id ?? "")
-                          .toString()
-                          .toLowerCase()
-                          .includes(q2);
-                        return nameOk || memberOk;
-                      })
-                      .map((e) => (
-                        <tr key={e.relative_path} className="sfms-tr">
-                          <td className="sfms-td font-medium">{e.name}</td>
-                          <td className="sfms-td text-slate-700 dark:text-slate-300">
-                            {e.entry_type === "folder" ? "Folder" : "File"}
-                          </td>
-                          <td className="sfms-td text-slate-700 dark:text-slate-300">
-                            {e.entry_type === "file"
-                              ? String(e.size ?? "—")
-                              : "—"}
-                          </td>
-                          <td className="sfms-td text-slate-700 dark:text-slate-300">
-                            —
-                          </td>
-                          <td className="sfms-td text-right">
-                            <ActionDropdown
-                              items={
-                                (e.entry_type === "folder"
-                                  ? ([
-                                      {
-                                        label: "Open",
-                                        onClick: () =>
-                                          openFolder({
-                                            branch_id: branchId ?? 0,
-                                            name: e.name,
-                                            relative_path: e.relative_path,
-                                          }),
-                                      },
-                                      { type: "separator" },
-                                      {
-                                        label: "Copy",
-                                        onClick: () => copyEntry(e),
-                                      },
-                                      {
-                                        label: "Cut",
-                                        onClick: () => cutEntry(e),
-                                      },
-                                      {
-                                        label: "Paste",
-                                        disabled: !clipboard,
-                                        onClick: () =>
-                                          void pasteInto(e.relative_path),
-                                      },
-                                      ...(isSuperAdmin || isBranchManager
-                                        ? ([
-                                            { type: "separator" },
-                                            {
-                                              label: "Delete",
-                                              danger: true,
-                                              disabled:
-                                                folderHasFilesByPath[
-                                                  e.relative_path
-                                                ] === true,
-                                              onClick: () => deleteEntry(e),
-                                            },
-                                          ] satisfies ActionDropdownItem[])
-                                        : ([] satisfies ActionDropdownItem[])),
-                                    ] satisfies ActionDropdownItem[])
-                                  : ([
-                                      {
-                                        label: "View",
-                                        onClick: () => viewFile(e),
-                                      },
-                                      {
-                                        label: "Download",
-                                        onClick: () => downloadFile(e),
-                                      },
-                                      {
-                                        label: "Edit",
-                                        onClick: () => editFile(e),
-                                        disabled: isEditDisabledForFile(e),
-                                      },
-                                      {
-                                        label: "Share",
-                                        onClick: () => openShareDialog(e),
-                                      },
-                                      { type: "separator" },
-                                      {
-                                        label: "Copy",
-                                        onClick: () => copyEntry(e),
-                                      },
-                                      {
-                                        label: "Cut",
-                                        onClick: () => cutEntry(e),
-                                      },
-                                      ...(isSuperAdmin || isBranchManager
-                                        ? ([
-                                            { type: "separator" },
-                                            {
-                                              label: "Delete",
-                                              danger: true,
-                                              onClick: () => deleteEntry(e),
-                                            },
-                                          ] satisfies ActionDropdownItem[])
-                                        : ([] satisfies ActionDropdownItem[])),
-                                    ] satisfies ActionDropdownItem[])) as ActionDropdownItem[]
-                              }
-                            />
-                          </td>
-                        </tr>
-                      ))
-                  )
-                ) : rootFolders.length === 0 ? (
-                  <tr>
-                    <td
-                      className="sfms-td py-10 text-center text-sm text-slate-500 dark:text-slate-400"
-                      colSpan={5}>
-                      No files or folders yet.
-                    </td>
-                  </tr>
-                ) : (
-                  rootFolders
-                    .filter((f) =>
-                      f.name.toLowerCase().includes(q.trim().toLowerCase()),
-                    )
-                    .map((f) => (
-                      <tr key={f.relative_path} className="sfms-tr">
-                        <td className="sfms-td font-medium">{f.name}</td>
-                        <td className="sfms-td text-slate-700 dark:text-slate-300">
-                          Folder
-                        </td>
-                        <td className="sfms-td text-slate-700 dark:text-slate-300">
-                          —
-                        </td>
-                        <td className="sfms-td text-slate-700 dark:text-slate-300">
-                          —
-                        </td>
-                        <td className="sfms-td text-right">
-                          <ActionDropdown
-                            items={
-                              [
-                                { label: "Open", onClick: () => openFolder(f) },
-                                { type: "separator" },
-                                {
-                                  label: "Copy",
-                                  onClick: () =>
-                                    copyEntry({
-                                      name: f.name,
-                                      entry_type: "folder",
-                                      relative_path: f.relative_path,
-                                    } as FolderEntryOut),
-                                },
-                                {
-                                  label: "Cut",
-                                  onClick: () =>
-                                    cutEntry({
-                                      name: f.name,
-                                      entry_type: "folder",
-                                      relative_path: f.relative_path,
-                                    } as FolderEntryOut),
-                                },
-                                {
-                                  label: "Paste",
-                                  disabled: !clipboard,
-                                  onClick: () =>
-                                    void pasteInto(f.relative_path),
-                                },
-                                ...(isBranchManager
-                                  ? ([
-                                      {
-                                        label: "Assign folder",
-                                        onClick: () => openAssignDialog(f),
-                                      },
-                                    ] satisfies ActionDropdownItem[])
-                                  : ([] satisfies ActionDropdownItem[])),
-                                ...(isSuperAdmin || isBranchManager
-                                  ? ([
-                                      { type: "separator" },
-                                      {
-                                        label: "Delete",
-                                        danger: true,
-                                        disabled:
-                                          folderHasFilesByPath[
-                                            f.relative_path
-                                          ] === true,
-                                        onClick: () =>
-                                          deleteEntry({
-                                            name: f.name,
-                                            entry_type: "folder",
-                                            relative_path: f.relative_path,
-                                          } as FolderEntryOut),
-                                      },
-                                    ] satisfies ActionDropdownItem[])
-                                  : ([] satisfies ActionDropdownItem[])),
-                              ] satisfies ActionDropdownItem[] as ActionDropdownItem[]
-                            }
-                          />
-                        </td>
-                      </tr>
-                    ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-          {rootFoldersLoading || folderEntriesLoading ? (
-            <div className="px-2 py-10 text-center text-sm text-slate-500">
-              Loading…
+        <div className="flex items-center gap-2">
+            <Filter size={16} className="text-slate-400" />
+            <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1 shadow-sm">
+               <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="bg-transparent border-none text-xs font-bold text-slate-600 focus:ring-0 w-28"
+               />
+               <span className="text-slate-300 mx-1">/</span>
+               <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="bg-transparent border-none text-xs font-bold text-slate-600 focus:ring-0 w-28"
+               />
+               {(fromDate || toDate) && (
+                 <button onClick={() => {setFromDate(""); setToDate("")}} className="ml-1 p-1 hover:bg-slate-100 rounded-md">
+                   <X size={12} />
+                 </button>
+               )}
             </div>
-          ) : currentFolder ? (
-            folderEntries.filter((e) => {
-              const q2 = q.trim().toLowerCase();
-              if (!q2) return true;
-              const nameOk = e.name.toLowerCase().includes(q2);
-              const memberOk = (e.member_id ?? "")
-                .toString()
-                .toLowerCase()
-                .includes(q2);
-              return nameOk || memberOk;
-            }).length === 0 ? (
-              <div className="px-2 py-10 text-center text-sm text-slate-500">
-                This folder is empty.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {folderEntries
-                  .filter((e) => {
-                    const q2 = q.trim().toLowerCase();
-                    if (!q2) return true;
-                    const nameOk = e.name.toLowerCase().includes(q2);
-                    const memberOk = (e.member_id ?? "")
-                      .toString()
-                      .toLowerCase()
-                      .includes(q2);
-                    return nameOk || memberOk;
-                  })
-                  .map((e) => (
-                    <div
-                      key={e.relative_path}
-                      className="rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                            {e.entry_type === "folder" ? "⌂" : "▦"}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                              {e.name}
-                            </div>
-                            <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                              {e.entry_type === "folder" ? "Folder" : "File"}
-                              {e.entry_type === "file"
-                                ? ` · ${String(e.size ?? "—")}`
-                                : ""}
-                            </div>
-                          </div>
-                        </div>
-                        <ActionDropdown
-                          items={
-                            (e.entry_type === "folder"
-                              ? ([
-                                  {
-                                    label: "Open",
-                                    onClick: () =>
-                                      openFolder({
-                                        branch_id: branchId ?? 0,
-                                        name: e.name,
-                                        relative_path: e.relative_path,
-                                      }),
-                                  },
-                                  { type: "separator" },
-                                  {
-                                    label: "Copy",
-                                    onClick: () => copyEntry(e),
-                                  },
-                                  { label: "Cut", onClick: () => cutEntry(e) },
-                                  {
-                                    label: "Paste",
-                                    disabled: !clipboard,
-                                    onClick: () =>
-                                      void pasteInto(e.relative_path),
-                                  },
-                                  ...(isSuperAdmin || isBranchManager
-                                    ? ([
-                                        { type: "separator" },
-                                        {
-                                          label: "Delete",
-                                          danger: true,
-                                          disabled:
-                                            folderHasFilesByPath[
-                                              e.relative_path
-                                            ] === true,
-                                          onClick: () => deleteEntry(e),
-                                        },
-                                      ] satisfies ActionDropdownItem[])
-                                    : ([] satisfies ActionDropdownItem[])),
-                                ] satisfies ActionDropdownItem[])
-                              : ([
-                                  { label: "View", onClick: () => viewFile(e) },
-                                  {
-                                    label: "Download",
-                                    onClick: () => downloadFile(e),
-                                  },
-                                  {
-                                    label: "Edit",
-                                    onClick: () => editFile(e),
-                                    disabled: isEditDisabledForFile(e),
-                                  },
-                                  {
-                                    label: "Share",
-                                    onClick: () => openShareDialog(e),
-                                  },
-                                  { type: "separator" },
-                                  {
-                                    label: "Copy",
-                                    onClick: () => copyEntry(e),
-                                  },
-                                  { label: "Cut", onClick: () => cutEntry(e) },
-                                  ...(isSuperAdmin || isBranchManager
-                                    ? ([
-                                        { type: "separator" },
-                                        {
-                                          label: "Delete",
-                                          danger: true,
-                                          onClick: () => deleteEntry(e),
-                                        },
-                                      ] satisfies ActionDropdownItem[])
-                                    : ([] satisfies ActionDropdownItem[])),
-                                ] satisfies ActionDropdownItem[])) as ActionDropdownItem[]
-                          }
-                          buttonClassName="!px-2 !py-1.5 !rounded-xl"
-                        />
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )
-          ) : rootFolders.filter((f) =>
-              f.name.toLowerCase().includes(q.trim().toLowerCase()),
-            ).length === 0 ? (
-            <div className="px-2 py-10 text-center text-sm text-slate-500">
-              No files or folders yet.
+
+            <select
+              value={branchId ?? ""}
+              onChange={(e) => setBranchId(e.target.value ? Number(e.target.value) : null)}
+              disabled={!isSuperAdmin}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:ring-emerald-primary disabled:opacity-50 transition-all shadow-sm"
+            >
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+        </div>
+      </div>
+
+      {/* Errors & Notices */}
+      <AnimatePresence>
+        {(branchError || rootFoldersError || folderEntriesError) && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 p-4 text-sm text-rose-800 dark:text-rose-300">
+            {branchError || rootFoldersError || folderEntriesError}
+          </motion.div>
+        )}
+        {notice && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 rounded-2xl bg-slate-900 text-white px-6 py-4 shadow-2xl flex items-center gap-4">
+            <span className="text-sm font-bold">{notice}</span>
+            <div className="h-5 w-[1px] bg-slate-700" />
+            <button onClick={() => setNotice(null)} className="text-slate-400 hover:text-white"><X size={16} /></button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Listing */}
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-8">
+          {rootFoldersLoading || folderEntriesLoading ? (
+            Array(8).fill(0).map((_, i) => (
+              <div key={i} className="h-48 rounded-3xl bg-slate-100 dark:bg-slate-900/50 animate-pulse" />
+            ))
+          ) : filteredItems.length === 0 ? (
+            <div className="col-span-full py-32 text-center">
+               <div className="flex justify-center mb-6">
+                 <div className="p-6 rounded-full bg-slate-50 dark:bg-slate-900">
+                    <Folder className="text-slate-200" size={64} />
+                 </div>
+               </div>
+               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Directory is empty</h3>
+               <p className="text-slate-500 mt-2">Try changing your filters or upload a new file.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {rootFolders
-                .filter((f) =>
-                  f.name.toLowerCase().includes(q.trim().toLowerCase()),
-                )
-                .map((f) => (
-                  <div
-                    key={f.relative_path}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                          ⌂
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {f.name}
-                          </div>
-                          <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                            Folder
-                          </div>
-                        </div>
-                      </div>
-                      <ActionDropdown
-                        items={
-                          [
-                            { label: "Open", onClick: () => openFolder(f) },
-                            { type: "separator" },
-                            {
-                              label: "Copy",
-                              onClick: () =>
-                                copyEntry({
-                                  name: f.name,
-                                  entry_type: "folder",
-                                  relative_path: f.relative_path,
-                                } as FolderEntryOut),
-                            },
-                            {
-                              label: "Cut",
-                              onClick: () =>
-                                cutEntry({
-                                  name: f.name,
-                                  entry_type: "folder",
-                                  relative_path: f.relative_path,
-                                } as FolderEntryOut),
-                            },
-                            {
-                              label: "Paste",
-                              disabled: !clipboard,
-                              onClick: () => void pasteInto(f.relative_path),
-                            },
-                            ...(isBranchManager
-                              ? ([
-                                  {
-                                    label: "Assign folder",
-                                    onClick: () => openAssignDialog(f),
-                                  },
-                                ] satisfies ActionDropdownItem[])
-                              : ([] satisfies ActionDropdownItem[])),
-                            ...(isSuperAdmin || isBranchManager
-                              ? ([
-                                  { type: "separator" },
-                                  {
-                                    label: "Delete",
-                                    danger: true,
-                                    disabled:
-                                      folderHasFilesByPath[f.relative_path] ===
-                                      true,
-                                    onClick: () =>
-                                      deleteEntry({
-                                        name: f.name,
-                                        entry_type: "folder",
-                                        relative_path: f.relative_path,
-                                      } as FolderEntryOut),
-                                  },
-                                ] satisfies ActionDropdownItem[])
-                              : ([] satisfies ActionDropdownItem[])),
-                          ] satisfies ActionDropdownItem[] as ActionDropdownItem[]
-                        }
-                        buttonClassName="!px-2 !py-1.5 !rounded-xl"
-                      />
-                    </div>
-                  </div>
-                ))}
-            </div>
+            filteredItems.map((e) => (
+              <motion.div
+                key={e.relative_path}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="group relative h-48 rounded-3xl glass-effect p-6 transition-all hover:shadow-xl hover:shadow-emerald-100/50 dark:hover:shadow-none hover:-translate-y-1"
+              >
+                <div className="flex items-start justify-between">
+                   <div className={`p-4 rounded-2xl ${e.entry_type === 'folder' ? 'bg-emerald-50 text-emerald-500 dark:bg-emerald-950/50' : 'bg-blue-50 text-blue-500 dark:bg-blue-950/50'}`}>
+                      {e.entry_type === 'folder' ? <Folder size={28} /> : <FileIcon size={28} />}
+                   </div>
+                   <ActionDropdown
+                     items={getEntryActions(e)}
+                     buttonLabel={<MoreVertical size={18} className="text-slate-400" />}
+                     buttonClassName="!bg-transparent !p-1 !shadow-none hover:!bg-slate-100 dark:hover:!bg-slate-800 !rounded-xl !text-inherit"
+                   />
+                </div>
+
+                <div className="mt-6">
+                   <div
+                    onClick={() => e.entry_type === 'folder' && openFolder({ branch_id: branchId ?? 0, name: e.name, relative_path: e.relative_path })}
+                    className="text-lg font-bold text-slate-900 dark:text-white truncate cursor-pointer hover:text-emerald- primary transition-colors"
+                    title={e.name}
+                   >
+                     {e.name}
+                   </div>
+                   <div className="mt-1 flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      <span>{e.entry_type === 'folder' ? 'Folder' : 'File'}</span>
+                      {e.size && (
+                        <>
+                          <span className="h-1 w-1 rounded-full bg-slate-300" />
+                          <span>{fmtSize(e.size)}</span>
+                        </>
+                      )}
+                   </div>
+                </div>
+              </motion.div>
+            ))
           )}
+        </div>
+      ) : (
+        <div className="rounded-3xl glass-effect overflow-hidden">
+           <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 dark:bg-slate-900/50">
+                   <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Name</th>
+                   <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Type</th>
+                   <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Size</th>
+                   <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredItems.map((e) => (
+                  <tr key={e.relative_path} className="hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors group">
+                     <td className="px-8 py-4">
+                        <div className="flex items-center gap-4 cursor-pointer" onClick={() => e.entry_type === 'folder' && openFolder({ branch_id: branchId ?? 0, name: e.name, relative_path: e.relative_path })}>
+                           <div className={`p-2 rounded-xl ${e.entry_type === 'folder' ? 'bg-emerald-50 text-emerald-500' : 'bg-blue-50 text-blue-500'} dark:bg-slate-800`}>
+                              {e.entry_type === 'folder' ? <Folder size={18} /> : <FileIcon size={18} />}
+                           </div>
+                           <span className="font-bold text-slate-900 dark:text-white">{e.name}</span>
+                        </div>
+                     </td>
+                     <td className="px-8 py-4 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                        {e.entry_type === 'folder' ? 'Folder' : 'File'}
+                     </td>
+                     <td className="px-8 py-4 text-sm font-semibold text-slate-900 dark:text-white">
+                        {fmtSize(e.size)}
+                     </td>
+                     <td className="px-8 py-4 text-right">
+                        <ActionDropdown
+                          items={getEntryActions(e)}
+                          buttonLabel={<MoreVertical size={16} className="text-slate-400" />}
+                          buttonClassName="!bg-transparent !p-1.5 !shadow-none hover:!bg-white dark:hover:!bg-slate-800 !rounded-xl !text-inherit"
+                        />
+                     </td>
+                  </tr>
+                ))}
+              </tbody>
+           </table>
         </div>
       )}
 
-      {createRootOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40"
-            onClick={closeCreateRootDialog}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Create Parent Folder
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Create a new folder in the branch root
-                </div>
-              </div>
-              <button
-                onClick={closeCreateRootDialog}
-                disabled={createRootLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Folder Name
-                </div>
-                <input
-                  value={newRootFolderName}
-                  onChange={(e) => setNewRootFolderName(e.target.value)}
-                  placeholder="Documents"
-                  disabled={createRootLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              {createRootError ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-                  {createRootError}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                onClick={closeCreateRootDialog}
-                disabled={createRootLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                Cancel
-              </button>
-              <button
-                onClick={submitCreateRootFolder}
-                disabled={createRootLoading}
-                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                {createRootLoading ? "Creating…" : "Create Folder"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {createSubOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40"
-            onClick={closeCreateSubDialog}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Create Folder
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Create a new folder inside the current folder
-                </div>
-              </div>
-              <button
-                onClick={closeCreateSubDialog}
-                disabled={createSubLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Folder Name
-                </div>
-                <input
-                  value={newSubFolderName}
-                  onChange={(e) => setNewSubFolderName(e.target.value)}
-                  placeholder="Documents"
-                  disabled={createSubLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              {createSubError ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-                  {createSubError}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                onClick={closeCreateSubDialog}
-                disabled={createSubLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                Cancel
-              </button>
-              <button
-                onClick={submitCreateSubFolder}
-                disabled={createSubLoading}
-                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                {createSubLoading ? "Creating…" : "Create Folder"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {assignOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40"
-            onClick={closeAssignDialog}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Assign Folder
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {assignFolder?.name ?? "—"}
-                </div>
-              </div>
-              <button
-                onClick={closeAssignDialog}
-                disabled={assignLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Select User
-                </div>
-                <select
-                  value={assignUserId}
-                  onChange={(e) =>
-                    setAssignUserId(
-                      e.target.value ? Number(e.target.value) : "",
-                    )
-                  }
-                  disabled={assignLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
-                  <option value="">Select user</option>
-                  {assignUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.email})
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {assignError ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-                  {assignError}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                onClick={closeAssignDialog}
-                disabled={assignLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                Cancel
-              </button>
-              <button
-                onClick={submitAssignFolder}
-                disabled={assignLoading}
-                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                {assignLoading ? "Assigning…" : "Assign"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {uploadOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40"
-            onClick={closeUploadDialog}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Upload File
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Select a date and file name
-                </div>
-              </div>
-              <button
-                onClick={closeUploadDialog}
-                disabled={uploadLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Date
-                </div>
-                <input
-                  type="date"
-                  value={uploadDate}
-                  onChange={(e) => setUploadDate(e.target.value)}
-                  disabled={uploadLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  File Name
-                </div>
-                <input
-                  value={uploadFileName}
-                  onChange={(e) => setUploadFileName(e.target.value)}
-                  placeholder="receipt-001"
-                  disabled={uploadLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={uploadAddMemberId}
-                  onChange={(e) => setUploadAddMemberId(e.target.checked)}
-                  disabled={uploadLoading}
-                />
-                <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Add member ID
-                </span>
-              </label>
-
-              {uploadAddMemberId ? (
-                <label className="block">
-                  <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                    Member ID
-                  </div>
-                  <input
-                    value={uploadMemberId}
-                    onChange={(e) => setUploadMemberId(e.target.value)}
-                    placeholder="MEM-001"
-                    disabled={uploadLoading}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                  />
-                </label>
-              ) : null}
-
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Choose File
-                </div>
-                <input
-                  type="file"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-                  disabled={uploadLoading}
-                  className="mt-1 block w-full text-sm text-slate-700 dark:text-slate-200 file:mr-3 file:rounded-lg file:border file:border-slate-200 file:bg-white file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-100 dark:file:border-slate-800 dark:file:bg-slate-950 dark:file:text-slate-200 dark:hover:file:bg-slate-900"
-                />
-              </label>
-
-              {uploadError ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-                  {uploadError}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                onClick={closeUploadDialog}
-                disabled={uploadLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                Cancel
-              </button>
-              <button
-                onClick={submitUpload}
-                disabled={uploadLoading}
-                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                {uploadLoading ? "Uploading…" : "Upload"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {shareOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40"
-            onClick={closeShareDialog}
-          />
-          <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Share with others
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Get shareable link
-                </div>
-              </div>
-              <button
-                onClick={closeShareDialog}
-                disabled={shareLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="md:col-span-2">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="block">
-                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                      Role
+      {/* Modals - Simplified for aesthetic consistency */}
+      <AnimatePresence>
+        {(createRootOpen || createSubOpen || uploadOpen || assignOpen || shareOpen) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+             <motion.div
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+               onClick={() => {
+                 setCreateRootOpen(false);
+                 setCreateSubOpen(false);
+                 setUploadOpen(false);
+                 setAssignOpen(false);
+                 setShareOpen(false);
+               }}
+             />
+             <motion.div
+               initial={{ opacity: 0, scale: 0.95, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.95, y: 20 }}
+               className="relative w-full max-w-lg bg-white dark:bg-slate-950 rounded-4xl p-8 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto"
+             >
+                {createRootOpen && (
+                  <>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Create Parent Folder</h2>
+                    <p className="text-slate-500 font-medium mb-8">Add a new main category to this branch</p>
+                    <div className="space-y-6">
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Folder Name</label>
+                          <input
+                            value={newRootFolderName}
+                            onChange={(e) => setNewRootFolderName(e.target.value)}
+                            placeholder="e.g. Marketing Projects"
+                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold"
+                          />
+                       </div>
+                       {createRootError && <p className="text-rose-500 text-sm font-bold">{createRootError}</p>}
+                       <button
+                        onClick={submitCreateRootFolder}
+                        disabled={createRootLoading}
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                       >
+                         {createRootLoading ? "Creating..." : "Confirm & Create"}
+                       </button>
                     </div>
-                    <select
-                      value={shareRole}
-                      onChange={(e) =>
-                        setShareRole(
-                          e.target.value === "READ_ONLY"
-                            ? "READ_ONLY"
-                            : "EDITOR",
-                        )
-                      }
-                      disabled={shareLoading}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
-                      <option value="READ_ONLY">Read only</option>
-                      <option value="EDITOR">Editor</option>
-                    </select>
-                  </label>
+                  </>
+                )}
 
-                  <label className="block">
-                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                      Expiration date
+                {createSubOpen && (
+                   <>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">New Sub-Folder</h2>
+                    <p className="text-slate-500 font-medium mb-8">Creating inside: {currentFolder?.name}</p>
+                    <div className="space-y-6">
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Folder Name</label>
+                          <input
+                            value={newSubFolderName}
+                            onChange={(e) => setNewSubFolderName(e.target.value)}
+                            placeholder="e.g. Q4 Invoices"
+                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold"
+                          />
+                       </div>
+                       {createSubError && <p className="text-rose-500 text-sm font-bold">{createSubError}</p>}
+                       <button
+                        onClick={submitCreateSubFolder}
+                        disabled={createSubLoading}
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                       >
+                         {createSubLoading ? "Creating..." : "Confirm & Create"}
+                       </button>
                     </div>
-                    <input
-                      type="date"
-                      value={shareExpiresOn}
-                      onChange={(e) => setShareExpiresOn(e.target.value)}
-                      disabled={shareLoading}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                    />
-                  </label>
-                </div>
+                  </>
+                )}
 
-                <div className="mt-4">
-                  <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                    Shareable link
-                  </div>
-                  <div className="mt-2 flex w-full items-center gap-2">
-                    <input
-                      value={shareLoading ? "Generating…" : shareLink}
-                      readOnly
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                    />
-                    <button
-                      onClick={() => void copyShareLink()}
-                      disabled={shareLoading || !shareLink}
-                      className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                      Copy link
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  People
-                </div>
-                <div ref={sharePeopleBoxRef} className="relative mt-2">
-                  <input
-                    value={sharePeopleQuery}
-                    onChange={(e) => setSharePeopleQuery(e.target.value)}
-                    onFocus={() => {
-                      if (sharePeopleResults.length > 0 || sharePeopleError)
-                        setSharePeopleDropdownOpen(true);
-                    }}
-                    placeholder="Search by user name..."
-                    disabled={shareLoading}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                  />
-
-                  {sharePeopleDropdownOpen ? (
-                    <div className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-                      {sharePeopleLoading ? (
-                        <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
-                          Searching…
-                        </div>
-                      ) : sharePeopleError ? (
-                        <div className="px-3 py-2 text-sm text-rose-700">
-                          {sharePeopleError}
-                        </div>
-                      ) : sharePeopleResults.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
-                          No matches
-                        </div>
-                      ) : (
-                        sharePeopleResults.map((u) => (
-                          <button
-                            key={u.id}
-                            type="button"
-                            onClick={() => addSharePerson(u)}
-                            className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-900">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-                                {u.name}
-                              </div>
-                              <div className="truncate text-xs text-slate-500 dark:text-slate-400">
-                                {u.email}
-                              </div>
-                            </div>
-                            <div className="shrink-0 text-xs font-medium text-slate-600 dark:text-slate-300">
-                              {u.branch_name}
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-
-                {shareSelectedPeople.length > 0 ? (
-                  <div className="mt-3 space-y-2">
-                    {shareSelectedPeople.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-950">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-                            {p.name}{" "}
-                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                              ({p.branch_name})
-                            </span>
+                {uploadOpen && (
+                  <>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Upload Asset</h2>
+                    <p className="text-slate-500 font-medium mb-8">Select file and metadata to upload</p>
+                    <div className="space-y-6">
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Document Date</label>
+                             <div className="relative">
+                               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                               <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold" />
+                             </div>
                           </div>
-                          <div className="truncate text-xs text-slate-500 dark:text-slate-400">
-                            {p.email}
+                          <div className="space-y-2">
+                             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Friendly Name</label>
+                             <input value={uploadFileName} onChange={(e) => setUploadFileName(e.target.value)} placeholder="File alias..." className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold" />
                           </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeSharePerson(p.id)}
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                          Remove
-                        </button>
-                      </div>
-                    ))}
+                       </div>
+
+                       <div className="space-y-4">
+                          <label className="flex items-center gap-3 cursor-pointer group">
+                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${uploadAddMemberId ? 'bg-emerald-primary border-emerald-primary' : 'bg-slate-50 border-slate-200'}`}>
+                               {uploadAddMemberId && <Plus size={14} className="text-white" />}
+                            </div>
+                            <input
+                              type="checkbox"
+                              className="hidden"
+                              checked={uploadAddMemberId}
+                              onChange={(e) => setUploadAddMemberId(e.target.checked)}
+                            />
+                            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Attach Member ID</span>
+                          </label>
+
+                          <AnimatePresence>
+                            {uploadAddMemberId && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <input
+                                  value={uploadMemberId}
+                                  onChange={(e) => setUploadMemberId(e.target.value)}
+                                  placeholder="Enter Member ID..."
+                                  className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold"
+                                />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                       </div>
+
+                       <div className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center gap-3 hover:border-emerald-primary/50 transition-colors group cursor-pointer relative">
+                          <Upload className="text-slate-300 group-hover:text-emerald-primary transition-colors" size={32} />
+                          <p className="text-sm font-bold text-slate-500 group-hover:text-slate-700 text-center">{uploadFile ? uploadFile.name : "Click to select or drag & drop"}</p>
+                          <input type="file" onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                       </div>
+
+                       {uploadError && <p className="text-rose-500 text-sm font-bold">{uploadError}</p>}
+                       <button
+                        onClick={submitUpload}
+                        disabled={uploadLoading}
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                       >
+                         {uploadLoading ? "Uploading..." : "Start Upload"}
+                       </button>
+                    </div>
+                  </>
+                )}
+
+                {assignOpen && (
+                   <>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Assign Folder</h2>
+                    <p className="text-slate-500 font-medium mb-8">Set owner for: {assignFolder?.name}</p>
+                    <div className="space-y-6">
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Select User</label>
+                          <div className="relative">
+                            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <select
+                              value={assignUserId}
+                              onChange={(e) => setAssignUserId(e.target.value ? Number(e.target.value) : "")}
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold text-sm appearance-none"
+                            >
+                              <option value="">Choose a user...</option>
+                              {assignUsers.map((u) => (
+                                <option key={u.id} value={u.id}>
+                                  {u.name} ({u.email})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                       </div>
+                       {assignError && <p className="text-rose-500 text-sm font-bold">{assignError}</p>}
+                       <button
+                        onClick={submitAssignFolder}
+                        disabled={assignLoading || assignUserId === ""}
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                       >
+                         {assignLoading ? "Assigning..." : "Assign Owner"}
+                       </button>
+                    </div>
+                  </>
+                )}
+
+                {shareOpen && (
+                   <div className="max-w-xl">
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Share Asset</h2>
+                    <p className="text-slate-500 font-medium mb-8">Manage access and share links</p>
+
+                    <div className="space-y-6">
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Shareable Link</label>
+                          <div className="flex gap-2">
+                            <div className="flex-1 relative">
+                              <Link className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                              <input
+                                readOnly
+                                value={shareLoading ? "Generating..." : shareLink}
+                                className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-slate-500"
+                              />
+                            </div>
+                            <button
+                              onClick={copyShareLink}
+                              disabled={shareLoading || !shareLink}
+                              className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-emerald-primary hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+                            >
+                              <Copy size={20} />
+                            </button>
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Role</label>
+                             <select
+                                value={shareRole}
+                                onChange={(e) => setShareRole(e.target.value as any)}
+                                className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold"
+                             >
+                                <option value="READ_ONLY">Viewer</option>
+                                <option value="EDITOR">Editor</option>
+                             </select>
+                          </div>
+                          <div className="space-y-2">
+                             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Expires On</label>
+                             <div className="relative">
+                                <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                <input type="date" value={shareExpiresOn} onChange={(e) => setShareExpiresOn(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold" />
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Add People</label>
+                          <div ref={sharePeopleBoxRef} className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input
+                              value={sharePeopleQuery}
+                              onChange={(e) => setSharePeopleQuery(e.target.value)}
+                              onFocus={() => sharePeopleResults.length > 0 && setSharePeopleDropdownOpen(true)}
+                              placeholder="Search by name or email..."
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold text-sm"
+                            />
+
+                            <AnimatePresence>
+                              {sharePeopleDropdownOpen && (
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-2 shadow-2xl">
+                                   {sharePeopleLoading ? (
+                                     <div className="p-4 text-center text-sm font-bold text-slate-400">Searching...</div>
+                                   ) : sharePeopleError ? (
+                                      <div className="p-4 text-center text-sm font-bold text-rose-500">{sharePeopleError}</div>
+                                   ) : sharePeopleResults.length === 0 ? (
+                                     <div className="p-4 text-center text-sm font-bold text-slate-400">No users found</div>
+                                   ) : (
+                                     sharePeopleResults.map((u) => (
+                                       <button key={u.id} onClick={() => addSharePerson(u)} className="flex items-center justify-between w-full p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors text-left group">
+                                          <div>
+                                            <div className="font-bold text-slate-900 dark:text-white">{u.name}</div>
+                                            <div className="text-xs text-slate-500">{u.email}</div>
+                                          </div>
+                                          <Plus size={18} className="text-slate-300 group-hover:text-emerald-primary transition-colors" />
+                                       </button>
+                                     ))
+                                   )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                       </div>
+
+                       {shareSelectedPeople.length > 0 && (
+                         <div className="flex flex-wrap gap-2">
+                            {shareSelectedPeople.map((p) => (
+                              <div key={p.id} className="flex items-center gap-2 pl-3 pr-1.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-bold">
+                                 <span>{p.name}</span>
+                                 <button onClick={() => removeSharePerson(p.id)} className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-md transition-colors"><X size={12} /></button>
+                              </div>
+                            ))}
+                         </div>
+                       )}
+
+                       {shareError && <p className="text-rose-500 text-sm font-bold">{shareError}</p>}
+                       <button
+                        onClick={submitShare}
+                        disabled={shareLoading || shareSelectedPeople.length === 0}
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                       >
+                         {shareLoading ? "Sharing..." : "Share with Selected"}
+                       </button>
+                    </div>
                   </div>
-                ) : null}
-
-                <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  Selecting people is UI-only for now; permissions aren’t stored
-                  yet.
-                </div>
-              </div>
-            </div>
-
-            {shareError ? (
-              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-                {shareError}
-              </div>
-            ) : null}
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                onClick={closeShareDialog}
-                disabled={shareLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                Cancel
-              </button>
-              <button
-                onClick={() => void submitShare()}
-                disabled={shareLoading || shareSelectedPeople.length === 0}
-                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                Share
-              </button>
-            </div>
+                )}
+             </motion.div>
           </div>
-        </div>
-      ) : null}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

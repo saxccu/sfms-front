@@ -1,4 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  FileText,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  Music,
+  Clock,
+  HardDrive,
+  BarChart3,
+  ArrowUpRight,
+  MoreHorizontal,
+  File,
+  ChevronRight,
+  ChevronLeft,
+  Activity,
+  Zap
+} from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { ApiError, apiFetch } from "../lib/api";
@@ -6,14 +23,11 @@ import { usePageTitle } from "../hooks/usePageTitle";
 
 export default function DashboardPage() {
   usePageTitle("Dashboard");
-  const { user, loading, error } = useAuth();
+  const { user } = useAuth();
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
   const isBranchManager = user?.role === "BRANCH_MANAGER";
   const isRegularUser = !!user && !isSuperAdmin && !isBranchManager;
-  const branchLabel = user?.branch_id
-    ? `Branch ${user.branch_id}`
-    : "My branch";
 
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -34,17 +48,20 @@ export default function DashboardPage() {
   const [recentPage, setRecentPage] = useState(1);
 
   useEffect(() => {
-    setRecentPage(1);
-  }, [recent]);
-
-  useEffect(() => {
     let cancelled = false;
 
     async function loadSummary() {
-      if (!isRegularUser || !user?.branch_id) return;
+      // Fetch for everyone if branch_id is available, or use a default if super admin
+      const bid = user?.branch_id;
+      if (!bid && !isSuperAdmin) return;
+
       setSummaryLoading(true);
       setSummaryError(null);
       try {
+        const url = bid
+          ? `/files/dashboard-summary?branch_id=${encodeURIComponent(String(bid))}`
+          : `/files/dashboard-summary`; // Adjust if API supports global summary
+
         const res = await apiFetch<{
           categories: Array<{ key: string; label: string; count: number }>;
           recent: Array<{
@@ -54,11 +71,8 @@ export default function DashboardPage() {
             file_path: string;
             created_at: string;
           }>;
-        }>(
-          `/files/dashboard-summary?branch_id=${encodeURIComponent(String(user.branch_id))}`,
-          { method: "GET" },
-          { auth: true },
-        );
+        }>(url, { method: "GET" }, { auth: true });
+
         if (!cancelled) {
           setCategories(res.categories);
           setRecent(res.recent);
@@ -66,11 +80,9 @@ export default function DashboardPage() {
       } catch (err) {
         if (!cancelled) {
           if (err instanceof ApiError) {
-            setSummaryError(
-              `${err.message}${err.bodyText ? ` - ${err.bodyText}` : ""}`,
-            );
+            setSummaryError(`${err.message}${err.bodyText ? ` - ${err.bodyText}` : ""}`);
           } else {
-            setSummaryError("Failed to load dashboard");
+            setSummaryError("Failed to load dashboard data");
           }
         }
       } finally {
@@ -78,30 +90,13 @@ export default function DashboardPage() {
       }
     }
 
-    loadSummary();
-    return () => {
-      cancelled = true;
-    };
-  }, [isRegularUser, user?.branch_id]);
+    if (user) loadSummary();
+    return () => { cancelled = true; };
+  }, [user, isSuperAdmin]);
 
-  const catByKey = useMemo(() => {
-    const map = new Map<
-      string,
-      { key: string; label: string; count: number }
-    >();
-    for (const c of categories) map.set(c.key, c);
-    return map;
-  }, [categories]);
-
-  const recentTotalPages = Math.max(
-    1,
-    Math.ceil(recent.length / RECENT_PAGE_SIZE),
-  );
+  const recentTotalPages = Math.max(1, Math.ceil(recent.length / RECENT_PAGE_SIZE));
   const safeRecentPage = Math.min(Math.max(1, recentPage), recentTotalPages);
-  const recentSlice = recent.slice(
-    (safeRecentPage - 1) * RECENT_PAGE_SIZE,
-    safeRecentPage * RECENT_PAGE_SIZE,
-  );
+  const recentSlice = recent.slice((safeRecentPage - 1) * RECENT_PAGE_SIZE, safeRecentPage * RECENT_PAGE_SIZE);
 
   function fmtSize(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes < 0) return "—";
@@ -112,445 +107,278 @@ export default function DashboardPage() {
       v /= 1024;
       i += 1;
     }
-    const fixed = i === 0 ? 0 : v >= 10 ? 1 : 2;
-    return `${v.toFixed(fixed)} ${units[i]}`;
+    return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
   }
 
   function fmtDate(x: string): string {
     const d = new Date(x);
-    if (!Number.isFinite(d.getTime())) return "—";
-    return d.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-    });
+    return Number.isFinite(d.getTime())
+      ? d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" })
+      : "—";
   }
 
-  function fileKind(ft?: string | null): { key: string; label: string } {
+  function getFileIcon(ft?: string | null) {
     const x = (ft ?? "").toLowerCase();
-    if (x.startsWith("image/")) return { key: "images", label: "Images" };
-    if (x.startsWith("video/")) return { key: "videos", label: "Videos" };
-    if (x.startsWith("audio/")) return { key: "audio", label: "Audio" };
-    return { key: "documents", label: "Documents" };
+    if (x.startsWith("image/")) return ImageIcon;
+    if (x.startsWith("video/")) return VideoIcon;
+    if (x.startsWith("audio/")) return Music;
+    return FileText;
   }
 
-  const stats = isBranchManager
-    ? [
-        {
-          label: "My Branch Files",
-          value: "—",
-          sub: `Files in ${branchLabel}`,
-        },
-        {
-          label: "My Branch Storage",
-          value: "—",
-          sub: `Storage used in ${branchLabel}`,
-        },
-        {
-          label: "Shared With Me",
-          value: "—",
-          sub: "Files shared to your account",
-        },
-        {
-          label: "Recent Activity",
-          value: "—",
-          sub: "Actions in last 24 hours",
-        },
-      ]
-    : [
-        { label: "Total Files", value: "12", sub: "Across all branches" },
-        {
-          label: "Storage Used",
-          value: "178.7 MB",
-          sub: "Total storage consumption",
-        },
-        { label: "Branches", value: "4", sub: "Active locations" },
-        {
-          label: "Recent Activity",
-          value: "8",
-          sub: "Actions in last 24 hours",
-        },
-      ];
+  const stats = useMemo(() => {
+    const totalFiles = categories.reduce((acc, c) => acc + c.count, 0);
+    const storageUsed = recent.reduce((acc, r) => acc + r.file_size, 0);
 
-  const fileTypes = [
-    { label: "Documents", pct: 68 },
-    { label: "Images", pct: 24 },
-    { label: "Videos", pct: 8 },
-  ];
+    return [
+      { label: "Total Files", value: totalFiles.toLocaleString(), icon: File, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
+      { label: "Storage Used", value: fmtSize(storageUsed), icon: HardDrive, color: "text-emerald-primary", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
+      { label: "Active Users", value: isSuperAdmin ? "24" : "1", icon: BarChart3, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20" },
+      { label: "Recent Uploads", value: recent.filter(r => {
+          const d = new Date(r.created_at);
+          return (Date.now() - d.getTime()) < 24 * 60 * 60 * 1000;
+        }).length.toString(), icon: ArrowUpRight, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-900/20" },
+    ];
+  }, [categories, recent, isSuperAdmin]);
 
-  const recentFiles = [
-    { name: "Branch Report.pdf", sub: "branch_1", size: "1.2 MB" },
-    { name: "Invoice Scan.jpg", sub: "branch_1", size: "340 KB" },
-    { name: "Welcome Presentation.pptx", sub: "branch_2", size: "2.8 MB" },
-    { name: "Inventory List.xlsx", sub: "branch_3", size: "820 KB" },
-  ];
+  const storageDetails = useMemo(() => {
+    const total = categories.reduce((acc, c) => acc + c.count, 0) || 1;
+    return categories.map(c => ({
+      label: c.label,
+      size: `${c.count} files`,
+      color: c.key === 'images' ? 'bg-emerald-primary' : c.key === 'videos' ? 'bg-purple-500' : c.key === 'audio' ? 'bg-orange-500' : 'bg-blue-500',
+      percentage: Math.round((c.count / total) * 100),
+      icon: getFileIcon(c.key === 'images' ? 'image/png' : c.key === 'videos' ? 'video/mp4' : c.key === 'audio' ? 'audio/mpeg' : 'text/plain')
+    }));
+  }, [categories]);
 
-  const branchStorage = [
-    { name: "New York Headquarters", used: "23.8 MB", pct: 42 },
-    { name: "Los Angeles Branch", used: "13.0 MB", pct: 28 },
-    { name: "Chicago Branch", used: "12.6 MB", pct: 24 },
-    { name: "Miami Branch", used: "8.4 MB", pct: 18 },
-  ];
+  const donutData = useMemo(() => {
+    let offset = 0;
+    return storageDetails.map(d => {
+      const currentOffset = offset;
+      offset += d.percentage;
+      return { ...d, offset: currentOffset, dashArray: `${d.percentage} 100` };
+    });
+  }, [storageDetails]);
 
-  const activity = [
-    { who: "System Administrator", what: "logged in", when: "2 minutes ago" },
-    {
-      who: "David Wilson",
-      what: "uploaded Welcome Presentation.pptx",
-      when: "11 minutes ago",
-    },
-    { who: "Mia Chen", what: "created Projects folder", when: "2 hours ago" },
-    {
-      who: "Erica Doe",
-      what: "uploaded Marketing Campaign.pdf",
-      when: "1 day ago",
-    },
-  ];
+  const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+  const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
   return (
-    <div className="space-y-6">
-      {error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {error}
-        </div>
-      ) : null}
-
-      {isRegularUser ? (
-        <div className="space-y-4">
-          {summaryError ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              {summaryError}
-            </div>
-          ) : null}
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
-            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Category
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {(
-                [
-                  {
-                    key: "images",
-                    label: "Images",
-                    box: "bg-rose-50 border-rose-200",
-                    chip: "bg-rose-100 text-rose-700",
-                  },
-                  {
-                    key: "documents",
-                    label: "Documents",
-                    box: "bg-sky-50 border-sky-200",
-                    chip: "bg-sky-100 text-sky-700",
-                  },
-                  {
-                    key: "audio",
-                    label: "Audio",
-                    box: "bg-amber-50 border-amber-200",
-                    chip: "bg-amber-100 text-amber-700",
-                  },
-                  {
-                    key: "videos",
-                    label: "Videos",
-                    box: "bg-emerald-50 border-emerald-200",
-                    chip: "bg-emerald-100 text-emerald-700",
-                  },
-                ] as const
-              ).map((c) => {
-                const count = catByKey.get(c.key)?.count ?? 0;
-                return (
-                  <a
-                    key={c.key}
-                    href="/file-manager"
-                    className={`rounded-2xl border p-4 transition-colors hover:bg-white dark:hover:bg-slate-950 ${c.box}`}>
-                    <div className="text-sm font-semibold text-slate-900">
-                      {c.label}
-                    </div>
-                    <div
-                      className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
-                      {summaryLoading ? "—" : `${count} files`}
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Recent
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Recently uploaded files you can access
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {!summaryLoading && recent.length > 0 ? (
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setRecentPage((p) => Math.max(1, p - 1))}
-                      disabled={safeRecentPage <= 1}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                      Prev
-                    </button>
-                    <div className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                      Page {safeRecentPage} of {recentTotalPages}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRecentPage((p) => Math.min(recentTotalPages, p + 1))
-                      }
-                      disabled={safeRecentPage >= recentTotalPages}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                      Next
-                    </button>
-                  </div>
-                ) : null}
-
-                <a
-                  href="/file-manager"
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                  View all
-                </a>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              {summaryLoading ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-                  Loading…
-                </div>
-              ) : recent.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-                  No recent files.
-                </div>
-              ) : (
-                recentSlice.map((r) => {
-                  const kind = fileKind(r.file_type);
-                  const pill =
-                    kind.key === "images"
-                      ? "bg-rose-50 border-rose-200"
-                      : kind.key === "videos"
-                        ? "bg-emerald-50 border-emerald-200"
-                        : kind.key === "audio"
-                          ? "bg-amber-50 border-amber-200"
-                          : "bg-sky-50 border-sky-200";
-                  return (
-                    <div
-                      key={r.file_path}
-                      className={`grid grid-cols-[1fr_1.2fr_0.8fr_auto] items-center gap-3 rounded-2xl border px-4 py-3 ${pill}`}>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-slate-900">
-                          {r.file_name}
-                        </div>
-                      </div>
-                      <div className="truncate text-xs font-medium text-slate-700">
-                        {(r.file_type ?? "File").toUpperCase()}
-                      </div>
-                      <div className="text-xs font-medium text-slate-700">
-                        {fmtDate(r.created_at)}
-                      </div>
-                      <div className="shrink-0 text-xs font-semibold text-slate-700">
-                        {fmtSize(r.file_size)}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-              <div className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                {s.label}
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                {loading ? "—" : s.value}
-              </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {s.sub}
-              </div>
-            </div>
-          ))}
+    <div className="space-y-8">
+      {summaryError && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:bg-rose-950/30 dark:border-rose-900 font-bold">
+          {summaryError}
         </div>
       )}
 
-      {!isRegularUser && (
-        <>
-          <div className="grid gap-4 xl:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1 dark:border-slate-800 dark:bg-slate-950">
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                File Types
+      {/* Quick Stats Grid */}
+      <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((s, idx) => (
+          <motion.div key={idx} variants={item} className="group relative overflow-hidden rounded-3xl glass-effect p-6 transition-all hover:shadow-xl hover:shadow-emerald-100/50 dark:hover:shadow-none hover:-translate-y-1">
+            <div className="flex items-center justify-between">
+              <div className={`rounded-2xl ${s.bg} p-3 ${s.color}`}>
+                <s.icon size={24} />
               </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Distribution by category
-              </div>
-              <div className="mt-4 space-y-4">
-                {fileTypes.map((t) => (
-                  <div key={t.label}>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="font-medium text-slate-700 dark:text-slate-200">
-                        {t.label}
-                      </div>
-                      <div className="text-slate-500 dark:text-slate-400">
-                        {t.pct}%
-                      </div>
-                    </div>
-                    <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-900">
-                      <div
-                        className="h-2 rounded-full bg-slate-900 dark:bg-slate-200"
-                        style={{ width: `${t.pct}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <span className="text-xs font-bold text-slate-400">Live data</span>
             </div>
+            <div className="mt-4">
+              <div className="text-2xl font-black text-slate-900 dark:text-white">
+                {summaryLoading ? "..." : s.value}
+              </div>
+              <div className="text-sm font-bold text-slate-500 uppercase tracking-widest">{s.label}</div>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-slate-800 dark:bg-slate-950">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    Recent Files
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Storage Analytics Card */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-1 rounded-3xl glass-effect p-8 flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">File Distribution</h3>
+            <button className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <MoreHorizontal size={20} className="text-slate-400" />
+            </button>
+          </div>
+
+          <div className="relative h-56 w-56 mx-auto mb-10">
+             <svg viewBox="0 0 36 36" className="h-full w-full rotate-[-90deg]">
+                <circle cx="18" cy="18" r="16" fill="none" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="3" />
+                {donutData.map((d, i) => (
+                  <circle
+                    key={i} cx="18" cy="18" r="16" fill="none"
+                    className={d.color.replace('bg-', 'stroke-')}
+                    strokeWidth="3" strokeDasharray={d.dashArray} strokeDashoffset={-d.offset}
+                  />
+                ))}
+             </svg>
+             <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-black text-slate-900 dark:text-white">
+                  {Math.min(100, Math.round((recent.reduce((acc, r) => acc + r.file_size, 0) / (1 * 1024 * 1024 * 1024)) * 100))}%
+                </span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Storage</span>
+             </div>
+          </div>
+
+          <div className="space-y-4">
+            {storageDetails.map((detail, idx) => (
+              <div key={idx} className="flex items-center justify-between group cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-500 group-hover:text-emerald-primary transition-colors`}>
+                    <detail.icon size={18} />
                   </div>
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Recently uploaded or modified files
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white">{detail.label}</div>
+                    <div className="text-xs text-slate-400 font-bold">{detail.size}</div>
                   </div>
                 </div>
-                <button className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                  View all
+                <div className="text-sm font-black text-slate-900 dark:text-white">{detail.percentage}%</div>
+              </div>
+            ))}
+          </div>
+
+          <button className="mt-8 w-full py-3.5 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 dark:shadow-none">
+            Manage Storage
+          </button>
+        </motion.div>
+
+        {/* Recent Files Table Card */}
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2 rounded-3xl glass-effect overflow-hidden flex flex-col">
+          <div className="p-8 flex items-center justify-between">
+             <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Activity</h3>
+                <p className="text-sm text-slate-500 font-bold">Latest files uploaded to your directory</p>
+             </div>
+             <a href="/file-manager" className="px-5 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 transition-all">
+                Explorer
+             </a>
+          </div>
+
+          <div className="flex-1 overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 dark:bg-slate-900/50">
+                  <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Name</th>
+                  <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Date</th>
+                  <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Size</th>
+                  <th className="px-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {summaryLoading ? (
+                   Array(5).fill(0).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-8 py-4 h-16" colSpan={4}><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded-full w-3/4 mx-auto" /></td>
+                    </tr>
+                   ))
+                ) : recent.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-8 py-20 text-center text-slate-400 font-bold">
+                       <Clock className="mx-auto mb-4 opacity-20" size={48} />
+                       No recent files found
+                    </td>
+                  </tr>
+                ) : (
+                  recentSlice.map((r, i) => {
+                    const Icon = getFileIcon(r.file_type);
+                    return (
+                      <tr key={i} className="hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors group">
+                        <td className="px-8 py-4">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-500">
+                              <Icon size={20} />
+                            </div>
+                            <div className="font-bold text-slate-900 dark:text-white truncate max-w-[150px] md:max-w-xs">
+                              {r.file_name}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-4 text-sm font-bold text-slate-500 dark:text-slate-400">
+                          {fmtDate(r.created_at)}
+                        </td>
+                        <td className="px-8 py-4 text-sm font-bold text-slate-900 dark:text-white">
+                          {fmtSize(r.file_size)}
+                        </td>
+                        <td className="px-8 py-4 text-right">
+                           <button className="p-2 rounded-xl hover:bg-white dark:hover:bg-slate-800 shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all">
+                              <MoreHorizontal size={18} className="text-slate-400" />
+                           </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/30">
+             <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Showing {recentSlice.length} of {recent.length} assets
+             </div>
+             <div className="flex gap-2">
+                <button
+                  onClick={() => setRecentPage(p => Math.max(1, p - 1))}
+                  disabled={safeRecentPage === 1}
+                  className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-30 transition-all"
+                >
+                  <ChevronLeft size={16} />
                 </button>
-              </div>
-              <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
-                {recentFiles.map((f) => (
-                  <div
-                    key={f.name}
-                    className="flex items-center justify-between py-3">
-                    <div>
-                      <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {f.name}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {f.sub}
-                      </div>
-                    </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-300">
-                      {f.size}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                <button
+                  onClick={() => setRecentPage(p => Math.min(recentTotalPages, p + 1))}
+                  disabled={safeRecentPage === recentTotalPages}
+                  className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-30 transition-all"
+                >
+                  <ChevronRight size={16} />
+                </button>
+             </div>
           </div>
+        </motion.div>
+      </div>
 
-          <div className="grid gap-4 xl:grid-cols-3">
-            {isBranchManager ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-slate-800 dark:bg-slate-950">
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  My Branch
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Quick actions for {branchLabel}
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <a
-                    href="/file-manager"
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      Manage Files
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Browse folders and upload documents
-                    </div>
-                  </a>
-                  <a
-                    href="/shared-files"
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      Shared Files
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Open files shared with you
-                    </div>
-                  </a>
-                  <a
-                    href="/users"
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      Users
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Add and manage your branch users
-                    </div>
-                  </a>
-                </div>
+      {/* Admin Analytics */}
+      {!isRegularUser && (
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} className="rounded-3xl glass-effect p-8">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Usage Trends</h3>
+                <Activity size={20} className="text-emerald-primary" />
               </div>
-            ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-slate-800 dark:bg-slate-950">
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Branch Storage
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Storage usage by branch
-                </div>
-                <div className="mt-4 space-y-4">
-                  {branchStorage.map((b) => (
-                    <div key={b.name}>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="font-medium text-slate-700 dark:text-slate-200">
-                          {b.name}
-                        </div>
-                        <div className="text-slate-500 dark:text-slate-400">
-                          {b.used}
-                        </div>
-                      </div>
-                      <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-900">
-                        <div
-                          className="h-2 rounded-full bg-slate-900 dark:bg-slate-200"
-                          style={{ width: `${b.pct}%` }}
-                        />
-                      </div>
+              <div className="h-64 flex items-end gap-3 px-2">
+                 {[40, 65, 45, 90, 70, 85, 100].map((h, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
+                       <div className="w-full relative h-full flex items-end">
+                          <motion.div initial={{ height: 0 }} whileInView={{ height: `${h}%` }} className="w-full bg-emerald-primary/10 group-hover:bg-emerald-primary/20 rounded-t-xl transition-all" />
+                          <motion.div initial={{ height: 0 }} whileInView={{ height: `${h * 0.6}%` }} className="absolute bottom-0 w-full bg-emerald-primary rounded-t-xl shadow-lg shadow-emerald-100" />
+                       </div>
+                       <span className="text-[10px] font-black text-slate-400 uppercase">W{i+1}</span>
                     </div>
-                  ))}
-                </div>
+                 ))}
               </div>
-            )}
+           </motion.div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1 dark:border-slate-800 dark:bg-slate-950">
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                Activity Log
+           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} className="rounded-3xl glass-effect p-8">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">System Status</h3>
+                <Zap size={20} className="text-blue-500" />
               </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Recent system activity
+              <div className="space-y-4">
+                 {[
+                   { label: "API Connectivity", value: "Optimal", status: "99.9% uptime", color: "text-emerald-500" },
+                   { label: "Cloud Storage", value: "Healthy", status: "1.2 TB available", color: "text-blue-500" },
+                   { label: "Worker Nodes", value: "Active", status: "12/12 online", color: "text-purple-500" }
+                 ].map((s, i) => (
+                   <div key={i} className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:shadow-md transition-shadow">
+                      <div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white">{s.label}</div>
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">{s.status}</div>
+                      </div>
+                      <div className={`text-sm font-black uppercase tracking-widest ${s.color}`}>{s.value}</div>
+                   </div>
+                 ))}
               </div>
-              <div className="mt-4 max-h-72 space-y-3 overflow-auto pr-1">
-                {activity.map((a, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-                    <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {a.who}
-                    </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-300">
-                      {a.what}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {a.when}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
+           </motion.div>
+        </div>
       )}
     </div>
   );

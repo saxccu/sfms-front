@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
+import { ArrowLeft, Cloud, ShieldCheck } from "lucide-react";
 
 import { ApiError, apiFetch } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -123,29 +124,64 @@ export default function OnlyOfficeEditorPage() {
   const holderId = "onlyoffice-editor-holder";
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-slate-50 dark:bg-slate-950">
-      <div className="flex flex-1 flex-col gap-3 px-2 py-2">
-        {loading ? (
-          <div className="text-sm text-slate-500 dark:text-slate-400">
-            Loading editor…
+    <div className="flex h-screen w-screen flex-col bg-slate-950 overflow-hidden font-inter">
+      {/* Mini Header */}
+      <div className="flex items-center justify-between px-6 py-4 bg-slate-900/40 backdrop-blur-md border-b border-white/5">
+        <div className="flex items-center gap-6">
+          <Link
+            to="/file-manager"
+            className="flex items-center gap-2 text-slate-400 hover:text-emerald-primary transition-colors text-xs font-black uppercase tracking-widest group"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Back
+          </Link>
+          <div className="h-5 w-px bg-white/10" />
+          <div className="flex items-center gap-3 text-white">
+            <Cloud className="h-5 w-5 text-emerald-primary" />
+            <span className="text-sm font-black truncate max-w-[200px] sm:max-w-md uppercase tracking-tight">
+              {filePath.split('/').pop() || "Document Editor"}
+            </span>
           </div>
-        ) : null}
-        {error ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="min-h-0 flex-1 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-          <div className="h-full w-full" id={holderId} ref={holderRef} />
         </div>
 
-        {docServerUrl ? (
-          <div className="text-xs text-slate-400 dark:text-slate-500">
-            DocServer: {docServerUrl}
-          </div>
-        ) : null}
+        <div className="hidden sm:flex items-center gap-3 text-[10px] uppercase tracking-widest font-black text-emerald-primary">
+          <div className="h-2 w-2 rounded-full bg-emerald-primary animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+          Live Session
+        </div>
       </div>
+
+      <div className="flex-1 relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-primary border-t-transparent shadow-[0_0_20px_rgba(16,185,129,0.2)]" />
+            <p className="mt-6 text-[10px] font-black text-white tracking-[0.3em] uppercase">Initializing Editor...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center p-6">
+            <div className="w-full max-w-md rounded-[40px] border border-rose-500/20 bg-slate-900/80 p-10 backdrop-blur-xl text-center shadow-2xl">
+              <h3 className="text-xl font-black text-white mb-3 uppercase tracking-widest">Editor Error</h3>
+              <p className="text-sm font-bold text-rose-200 mb-8">{error}</p>
+              <Link to="/file-manager" className="inline-flex rounded-2xl bg-white px-8 py-3 text-xs font-black text-slate-950 hover:bg-emerald-50 transition-all uppercase tracking-widest shadow-lg shadow-black/20">
+                Return to Files
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <div className="h-full w-full bg-white" id={holderId} ref={holderRef} />
+      </div>
+
+      {docServerUrl && (
+        <div className="px-6 py-2 bg-slate-900/60 text-[9px] text-slate-500 font-black uppercase tracking-widest flex justify-between border-t border-white/5">
+          <span className="flex items-center gap-2 italic">{docServerUrl}</span>
+          <span className="flex items-center gap-2">
+            <ShieldCheck size={12} className="text-emerald-primary" />
+            OnlyOffice Enterprise Security Active
+          </span>
+        </div>
+      )}
     </div>
   );
 }
