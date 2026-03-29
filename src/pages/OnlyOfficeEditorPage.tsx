@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
+import { ArrowLeftIcon, CloudIcon } from "@heroicons/react/24/outline";
 
 import { ApiError, apiFetch } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -123,29 +124,61 @@ export default function OnlyOfficeEditorPage() {
   const holderId = "onlyoffice-editor-holder";
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-slate-50 dark:bg-slate-950">
-      <div className="flex flex-1 flex-col gap-3 px-2 py-2">
-        {loading ? (
-          <div className="text-sm text-slate-500 dark:text-slate-400">
-            Loading editor…
+    <div className="flex h-screen w-screen flex-col bg-sky-950 overflow-hidden">
+      {/* Mini Header */}
+      <div className="flex items-center justify-between px-6 py-3 bg-sky-900/50 backdrop-blur-md border-b border-white/10">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/file-manager"
+            className="flex items-center gap-2 text-sky-200 hover:text-white transition-colors text-sm font-semibold group"
+          >
+            <ArrowLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Back to Files
+          </Link>
+          <div className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2 text-white">
+            <CloudIcon className="h-5 w-5 text-primary-400" />
+            <span className="text-sm font-bold truncate max-w-[200px] sm:max-w-md">
+              {filePath.split('/').pop() || "Document Editor"}
+            </span>
           </div>
-        ) : null}
-        {error ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="min-h-0 flex-1 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-          <div className="h-full w-full" id={holderId} ref={holderRef} />
         </div>
 
-        {docServerUrl ? (
-          <div className="text-xs text-slate-400 dark:text-slate-500">
-            DocServer: {docServerUrl}
-          </div>
-        ) : null}
+        <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-sky-400">
+          <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+          Live Collaboration
+        </div>
       </div>
+
+      <div className="flex-1 relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-sky-950/80 backdrop-blur-sm">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary-500 border-t-transparent shadow-xl" />
+            <p className="mt-4 text-sm font-bold text-white tracking-widest uppercase">Opening Editor...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center p-6">
+            <div className="w-full max-w-md rounded-3xl border border-red-500/30 bg-red-950/50 p-8 backdrop-blur-xl text-center">
+              <h3 className="text-xl font-bold text-white mb-2">Editor Error</h3>
+              <p className="text-sm text-red-200 mb-6">{error}</p>
+              <Link to="/file-manager" className="inline-flex rounded-2xl bg-white px-6 py-2.5 text-sm font-bold text-red-950 hover:bg-sky-50 transition-colors">
+                Return to Files
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <div className="h-full w-full bg-white" id={holderId} ref={holderRef} />
+      </div>
+
+      {docServerUrl && (
+        <div className="px-6 py-1.5 bg-sky-900/80 text-[10px] text-sky-400 font-medium flex justify-between">
+          <span>{docServerUrl}</span>
+          <span>OnlyOffice Enterprise Edition</span>
+        </div>
+      )}
     </div>
   );
 }
