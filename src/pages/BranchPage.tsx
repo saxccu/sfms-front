@@ -4,9 +4,6 @@ import {
   BuildingOfficeIcon,
   MapPinIcon,
   UserGroupIcon,
-  ArrowDownTrayIcon,
-  PencilSquareIcon,
-  TrashIcon,
   PlusIcon,
   MagnifyingGlassIcon,
   XMarkIcon
