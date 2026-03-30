@@ -1,4 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Users,
+  Search,
+  Plus,
+  Mail,
+  Shield,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Edit3,
+  Trash2,
+  Lock,
+  User as UserIcon,
+  MoreVertical
+} from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { ApiError, apiFetch } from "../lib/api";
@@ -34,65 +51,33 @@ const ROLE_OPTIONS: { value: string; label: string }[] = [
 ];
 
 function roleBadge(role: string): { text: string; className: string } {
+  const base = "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm";
   if (role === "SUPER_ADMIN") {
     return {
       text: "Super Admin",
-      className: "bg-rose-100 text-rose-700 border-rose-200",
+      className: `${base} bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/20 dark:border-rose-900`,
     };
   }
   if (role === "BRANCH_MANAGER") {
     return {
       text: "Branch Manager",
-      className: "bg-indigo-100 text-indigo-700 border-indigo-200",
+      className: `${base} bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900`,
     };
   }
   if (role === "COORDINATOR") {
     return {
       text: "Coordinator",
-      className: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    };
-  }
-  if (role === "LOAN_OFFICER") {
-    return {
-      text: "Loan Officer",
-      className: "bg-slate-100 text-slate-700 border-slate-200",
-    };
-  }
-  if (role === "CUSTOMER_RELATION") {
-    return {
-      text: "Customer Relation",
-      className: "bg-slate-100 text-slate-700 border-slate-200",
-    };
-  }
-  if (role === "ACCOUNTANT") {
-    return {
-      text: "Accountant",
-      className: "bg-slate-100 text-slate-700 border-slate-200",
-    };
-  }
-  if (role === "CASHIER") {
-    return {
-      text: "Cashier",
-      className: "bg-slate-100 text-slate-700 border-slate-200",
+      className: `${base} bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900`,
     };
   }
   return {
-    text: role,
-    className: "bg-slate-100 text-slate-700 border-slate-200",
+    text: role.replace('_', ' '),
+    className: `${base} bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-900/50 dark:border-slate-800`,
   };
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
-}
 
-function initials(name: string): string {
+function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "U";
   const a = parts[0]?.[0] ?? "U";
@@ -110,10 +95,9 @@ export default function UsersPage() {
   const [branches, setBranches] = useState<BranchOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [branchesError, setBranchesError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 8;
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
   const isBranchManager = user?.role === "BRANCH_MANAGER";
@@ -151,7 +135,6 @@ export default function UsersPage() {
   async function load() {
     setLoading(true);
     setError(null);
-    setBranchesError(null);
     try {
       const usersRes = await apiFetch<UserOut[]>(
         "/users",
@@ -170,13 +153,7 @@ export default function UsersPage() {
       } catch (err) {
         setBranches([]);
         if (!isBranchManager) {
-          if (err instanceof ApiError) {
-            setBranchesError(
-              `${err.message}${err.bodyText ? ` - ${err.bodyText}` : ""}`,
-            );
-          } else {
-            setBranchesError("Failed to load branches");
-          }
+          // ignore
         }
       }
     } catch (err) {
@@ -441,198 +418,141 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            User Management
-          </div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">
-            Manage users and their permissions
-          </div>
-        </div>
-
-        {isSuperAdmin || isBranchManager ? (
-          <button
-            onClick={openAddDialog}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
-            <span className="text-base leading-none">+</span>
-            Add User
-          </button>
-        ) : null}
-      </div>
-
-      {error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {error}
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="relative w-full md:flex-1">
-          <span className="pointer-events-none absolute left-3 top-2.5 text-slate-400">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-4 w-4">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </span>
-          <input
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex-1 max-w-2xl relative group">
+           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-primary transition-colors" size={20} />
+           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search users by name, username, or email..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
-          />
+            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-4 focus:ring-emerald-primary/10 transition-all outline-none shadow-sm font-bold"
+           />
         </div>
 
-        {!isBranchManager ? (
-          <select
-            value={filterBranchId}
-            onChange={(e) =>
-              setFilterBranchId(e.target.value ? Number(e.target.value) : "")
-            }
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 md:w-56">
-            <option value="">All Branches</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        ) : null}
+        <div className="flex items-center gap-3">
+           {!isBranchManager && (
+             <div className="relative group">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-primary transition-colors" size={16} />
+                <select
+                  value={filterBranchId}
+                  onChange={(e) => setFilterBranchId(e.target.value ? Number(e.target.value) : "")}
+                  className="pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 focus:ring-emerald-primary transition-all shadow-sm appearance-none"
+                >
+                  <option value="">All Branches</option>
+                  {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+             </div>
+           )}
 
-        <select
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 md:w-56">
-          <option value="">All Roles</option>
-          {ROLE_OPTIONS.filter((r) =>
-            isBranchManager
-              ? r.value !== "SUPER_ADMIN" && r.value !== "BRANCH_MANAGER"
-              : true,
-          ).map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
+           <div className="relative group">
+              <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-primary transition-colors" size={16} />
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 focus:ring-emerald-primary transition-all shadow-sm appearance-none"
+              >
+                <option value="">All Roles</option>
+                {ROLE_OPTIONS.filter((r) =>
+                  isBranchManager ? r.value !== "SUPER_ADMIN" && r.value !== "BRANCH_MANAGER" : true
+                ).map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+           </div>
+
+           {(isSuperAdmin || isBranchManager) && (
+              <button
+                onClick={openAddDialog}
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-primary text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all whitespace-nowrap"
+              >
+                <Plus size={18} />
+                <span>Add User</span>
+              </button>
+           )}
+        </div>
       </div>
 
-      <div className="sfms-listing-card rounded-md">
-        <div className="overflow-auto">
-          <table className="sfms-table text-[11px]">
-            <thead className="sfms-thead">
-              <tr>
-                <th className="sfms-th !px-2 !py-1.5">User</th>
-                <th className="sfms-th !px-2 !py-1.5">Role</th>
-                <th className="sfms-th !px-2 !py-1.5">Branch</th>
-                <th className="sfms-th !px-2 !py-1.5">Status</th>
-                <th className="sfms-th !px-2 !py-1.5">Created</th>
-                <th className="sfms-th !px-2 !py-1.5 text-right">Actions</th>
+      {error && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-rose-50 border border-rose-100 p-4 text-sm text-rose-800 font-bold dark:bg-rose-950/20 dark:border-rose-900">
+          {error}
+        </motion.div>
+      )}
+
+      <div className="rounded-3xl glass-effect overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50/50 dark:bg-slate-900/50">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Identity</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Position</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Workplace</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td
-                    className="sfms-td py-10 text-center text-sm text-slate-500 dark:text-slate-400"
-                    colSpan={6}>
-                    Loading users…
-                  </td>
-                </tr>
+                Array(5).fill(0).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td colSpan={4} className="px-6 py-8"><div className="h-4 bg-slate-50 dark:bg-slate-800 rounded-full w-3/4" /></td>
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td
-                    className="sfms-td py-10 text-center text-sm text-slate-500 dark:text-slate-400"
-                    colSpan={6}>
-                    No users found.
+                  <td colSpan={4} className="px-6 py-20 text-center">
+                     <Users className="mx-auto mb-4 text-slate-200" size={48} />
+                     <p className="text-slate-400 font-bold">No users identified in this sector</p>
                   </td>
                 </tr>
               ) : (
                 paged.map((u) => {
                   const badge = roleBadge(u.role);
-                  const branchText =
-                    u.role === "SUPER_ADMIN"
-                      ? "All Branches"
-                      : (branchNameById.get(u.branch_id) ??
-                        `Branch ${u.branch_id}`);
+                  const branchText = u.role === "SUPER_ADMIN" ? "Universal Access" : (branchNameById.get(u.branch_id) || "Unassigned");
 
                   return (
-                    <tr key={u.id} className="sfms-tr">
-                      <td className="sfms-td !px-2 !py-1.5">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                            {initials(u.name)}
+                    <tr key={u.id} className="hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 font-black text-xs dark:bg-slate-800 transition-colors group-hover:bg-white group-hover:text-emerald-primary shadow-inner">
+                            {getInitials(u.name)}
                           </div>
                           <div className="min-w-0">
-                            <div className="truncate font-medium text-slate-900 dark:text-slate-100">
+                            <div className="font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight truncate">
                               {u.name}
                             </div>
-                            <div className="truncate text-[10px] text-slate-500 dark:text-slate-400">
-                              {u.email}
+                            <div className="text-[11px] text-slate-400 font-bold flex items-center gap-2 mt-0.5">
+                               <Mail size={12} />
+                               {u.email}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="sfms-td !px-2 !py-1.5">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${badge.className}`}>
+                      <td className="px-6 py-4">
+                        <span className={badge.className}>
                           {badge.text}
                         </span>
                       </td>
-                      <td className="sfms-td !px-2 !py-1.5 text-slate-700 dark:text-slate-300">
-                        <span className="inline-flex items-center gap-2">
-                          <span className="text-slate-400">
-                            <svg
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              className="h-3.5 w-3.5">
-                              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0Z" />
-                              <path d="M12 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                            </svg>
-                          </span>
-                          {branchText}
-                        </span>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                           <MapPin size={14} className="text-slate-300" />
+                           {branchText}
+                        </div>
                       </td>
-                      <td className="sfms-td !px-2 !py-1.5">
-                        <span className="inline-flex items-center rounded-full bg-slate-900 px-1.5 py-0.5 text-[9px] font-semibold text-white">
-                          Active
-                        </span>
-                      </td>
-                      <td className="sfms-td !px-2 !py-1.5 text-slate-700 dark:text-slate-300">
-                        {formatDate(u.created_at)}
-                      </td>
-                      <td className="sfms-td !px-2 !py-1.5 text-right">
+                      <td className="px-6 py-4 text-right">
                         <ActionDropdown
-                          items={
-                            [
+                          items={[
+                            { label: "Edit Protocol", icon: Edit3, onClick: () => openEditDialog(u) },
+                            ...(isSuperAdmin ? [
+                              { type: "separator" },
                               {
-                                label: "Edit",
-                                onClick: () => openEditDialog(u),
+                                label: "Revoke Access",
+                                icon: Trash2,
+                                danger: true,
+                                disabled: currentUserId != null && u.id === currentUserId,
+                                onClick: () => deleteUserRow(u),
                               },
-                              ...(isSuperAdmin
-                                ? ([
-                                    { type: "separator" },
-                                    {
-                                      label: "Delete",
-                                      danger: true,
-                                      disabled:
-                                        currentUserId != null &&
-                                        u.id === currentUserId,
-                                      onClick: () => deleteUserRow(u),
-                                    },
-                                  ] satisfies ActionDropdownItem[])
-                                : ([] satisfies ActionDropdownItem[])),
-                            ] satisfies ActionDropdownItem[] as ActionDropdownItem[]
-                          }
-                          buttonLabel="Edit | Details"
-                          buttonClassName="!bg-white !text-red-600 !border !border-red-500 !shadow-none hover:!bg-red-50 dark:!bg-slate-950 dark:hover:!bg-rose-950/20 !px-2 !py-1"
+                            ] : []) as ActionDropdownItem[]
+                          ]}
+                          buttonLabel={<MoreVertical size={18} className="text-slate-300 group-hover:text-slate-600 transition-colors" />}
+                          buttonClassName="!bg-transparent !p-2 !shadow-none hover:!bg-white dark:hover:!bg-slate-800 !rounded-xl"
                         />
                       </td>
                     </tr>
@@ -644,360 +564,180 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {!loading && filtered.length > 0 ? (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs text-slate-500 dark:text-slate-400">
-            Showing {(safePage - 1) * pageSize + 1}–
-            {Math.min(safePage * pageSize, filtered.length)} of{" "}
-            {filtered.length}
+      {!loading && filtered.length > pageSize && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2">
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            Records {(safePage - 1) * pageSize + 1} to {Math.min(safePage * pageSize, filtered.length)} of {filtered.length}
           </div>
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center gap-2">
             <button
-              type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-              Prev
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-30 transition-all hover:bg-slate-50 shadow-sm"
+            >
+              <ChevronLeft size={18} />
             </button>
-            <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-              Page {safePage} / {pageCount}
+            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-xl text-xs font-black text-slate-900 dark:text-white">
+              {safePage} / {pageCount}
             </div>
             <button
-              type="button"
               onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
               disabled={safePage >= pageCount}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-              Next
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 disabled:opacity-30 transition-all hover:bg-slate-50 shadow-sm"
+            >
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {addOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40"
-            onClick={closeAddDialog}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Add New User
+      {/* Add User Modal */}
+      <AnimatePresence>
+        {addOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeAddDialog} className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm" />
+             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-lg bg-white dark:bg-slate-950 rounded-[40px] p-10 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto">
+                <div className="flex items-center justify-between mb-8">
+                   <div>
+                      <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Onboard User</h2>
+                      <p className="text-sm font-bold text-slate-500 mt-1">Configure security credentials and sector</p>
+                   </div>
+                   <button onClick={closeAddDialog} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
                 </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Create a new user account
-                </div>
-              </div>
-              <button
-                onClick={closeAddDialog}
-                disabled={creating}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                ✕
-              </button>
-            </div>
 
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Full Name
-                </div>
-                <input
-                  value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
-                  placeholder="John Doe"
-                  disabled={creating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Username
-                </div>
-                <input
-                  value={addUsername}
-                  onChange={(e) => setAddUsername(e.target.value)}
-                  placeholder="jdoe"
-                  disabled={creating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Email
-                </div>
-                <input
-                  value={addEmail}
-                  onChange={(e) => setAddEmail(e.target.value)}
-                  placeholder="john@company.com"
-                  disabled={creating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Password
-                </div>
-                <input
-                  type="password"
-                  value={addPassword}
-                  onChange={(e) => setAddPassword(e.target.value)}
-                  placeholder="********"
-                  disabled={creating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                    Role
-                  </div>
-                  <select
-                    value={addRole}
-                    onChange={(e) => setAddRole(e.target.value)}
-                    disabled={creating}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
-                    {ROLE_OPTIONS.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                    Branch
-                  </div>
-                  <select
-                    value={addBranchId}
-                    onChange={(e) =>
-                      setAddBranchId(
-                        e.target.value ? Number(e.target.value) : "",
-                      )
-                    }
-                    disabled={creating || addRole === "SUPER_ADMIN"}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
-                    <option value="">Select branch</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                  {branchesError ? (
-                    <div className="mt-1 text-[11px] text-rose-700">
-                      {branchesError}
-                    </div>
-                  ) : null}
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2">
-                <div>
-                  <div className="text-xs font-medium text-slate-900">
-                    Active Account
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    Controls login availability
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAddActive((v) => !v)}
-                  disabled={creating}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    addActive ? "bg-slate-900" : "bg-slate-200"
-                  } disabled:cursor-not-allowed disabled:opacity-60`}>
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      addActive ? "translate-x-4" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {createError ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-                  {createError}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                onClick={closeAddDialog}
-                disabled={creating}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                Cancel
-              </button>
-              <button
-                onClick={submitAddUser}
-                disabled={creating}
-                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                {creating ? "Creating…" : "Create User"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {editOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40"
-            onClick={closeEditDialog}
-          />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Edit User
-                </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Update user account details
-                </div>
-              </div>
-              <button
-                onClick={closeEditDialog}
-                disabled={updating}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Full Name
-                </div>
-                <input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  disabled={updating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Username
-                </div>
-                <input
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
-                  disabled={updating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  Email
-                </div>
-                <input
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  disabled={updating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="block">
-                <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                  New Password (optional)
-                </div>
-                <input
-                  type="password"
-                  value={editPassword}
-                  onChange={(e) => setEditPassword(e.target.value)}
-                  disabled={updating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block">
-                  <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                    Role
-                  </div>
-                  <select
-                    value={editRole}
-                    onChange={(e) => setEditRole(e.target.value)}
-                    disabled={updating}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
-                    {ROLE_OPTIONS.filter((r) =>
-                      isBranchManager
-                        ? r.value !== "SUPER_ADMIN" &&
-                          r.value !== "BRANCH_MANAGER"
-                        : true,
-                    ).map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {isSuperAdmin ? (
-                  <label className="block">
-                    <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                      Branch
-                    </div>
-                    <select
-                      value={editBranchId}
-                      onChange={(e) =>
-                        setEditBranchId(
-                          e.target.value ? Number(e.target.value) : "",
-                        )
-                      }
-                      disabled={updating || editRole === "SUPER_ADMIN"}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
-                      <option value="">Select branch</option>
-                      {branches.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
-                    {branchesError ? (
-                      <div className="mt-1 text-[11px] text-rose-700">
-                        {branchesError}
+                <div className="space-y-5">
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Identity</label>
+                         <div className="relative">
+                            <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                            <input value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="e.g. Samuel Amite" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none" />
+                         </div>
                       </div>
-                    ) : null}
-                  </label>
-                ) : null}
-              </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Username</label>
+                         <input value={addUsername} onChange={(e) => setAddUsername(e.target.value)} placeholder="sam.amite" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none" />
+                      </div>
+                   </div>
 
-              {updateError ? (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-                  {updateError}
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Connection</label>
+                      <div className="relative">
+                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                         <input value={addEmail} onChange={(e) => setAddEmail(e.target.value)} placeholder="name@saxccu.com" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none" />
+                      </div>
+                   </div>
+
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secure Passkey</label>
+                      <div className="relative">
+                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                         <input type="password" value={addPassword} onChange={(e) => setAddPassword(e.target.value)} placeholder="••••••••••••" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none" />
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Clearance Level</label>
+                         <select value={addRole} onChange={(e) => setAddRole(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none appearance-none">
+                            {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                         </select>
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Operation Sector</label>
+                         <select value={addBranchId} onChange={(e) => setAddBranchId(e.target.value ? Number(e.target.value) : "")} disabled={addRole === "SUPER_ADMIN"} className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none appearance-none disabled:opacity-30">
+                            <option value="">Select Sector</option>
+                            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                         </select>
+                      </div>
+                   </div>
+
+                   <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-900 rounded-[28px] border border-slate-100 dark:border-slate-800">
+                      <div>
+                         <div className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Active Status</div>
+                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Enables system entry</div>
+                      </div>
+                      <button onClick={() => setAddActive(!addActive)} className={`relative w-12 h-6 rounded-full transition-all ${addActive ? 'bg-emerald-primary' : 'bg-slate-200'}`}>
+                         <motion.div animate={{ x: addActive ? 26 : 2 }} className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+                      </button>
+                   </div>
+
+                   {createError && <p className="text-rose-600 text-xs font-bold text-center">{createError}</p>}
+
+                   <button onClick={submitAddUser} disabled={creating} className="w-full py-4 bg-emerald-primary text-white font-black rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all uppercase tracking-[0.2em] mt-4">
+                      {creating ? "Synchronizing..." : "Finalize Onboarding"}
+                   </button>
                 </div>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                onClick={closeEditDialog}
-                disabled={updating}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                Cancel
-              </button>
-              <button
-                onClick={submitEditUser}
-                disabled={updating}
-                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
-                {updating ? "Saving…" : "Save Changes"}
-              </button>
-            </div>
+             </motion.div>
           </div>
-        </div>
-      ) : null}
+        )}
+      </AnimatePresence>
+
+      {/* Edit User Modal */}
+      <AnimatePresence>
+        {editOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeEditDialog} className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm" />
+             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-lg bg-white dark:bg-slate-950 rounded-[40px] p-10 shadow-2xl border border-slate-200 dark:border-slate-800 my-auto">
+                <div className="flex items-center justify-between mb-8">
+                   <div>
+                      <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Modify Protocol</h2>
+                      <p className="text-sm font-bold text-slate-500 mt-1">Update security clearace and metadata</p>
+                   </div>
+                   <button onClick={closeEditDialog} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
+                </div>
+
+                <div className="space-y-5">
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Identity</label>
+                         <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none" />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Username</label>
+                         <input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none" />
+                      </div>
+                   </div>
+
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">System Email</label>
+                      <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none" />
+                   </div>
+
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Rotate Passkey <span className="text-[9px] lowercase italic opacity-60">(Leave empty to retain current)</span></label>
+                      <input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="••••••••••••" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none" />
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Clearance Role</label>
+                         <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none appearance-none">
+                            {ROLE_OPTIONS.filter((r) => isBranchManager ? r.value !== "SUPER_ADMIN" && r.value !== "BRANCH_MANAGER" : true).map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                         </select>
+                      </div>
+                      {isSuperAdmin && (
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Deployment Sector</label>
+                           <select value={editBranchId} onChange={(e) => setEditBranchId(e.target.value ? Number(e.target.value) : "")} disabled={editRole === "SUPER_ADMIN"} className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 font-bold text-sm outline-none appearance-none disabled:opacity-30">
+                              <option value="">Select Sector</option>
+                              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                           </select>
+                        </div>
+                      )}
+                   </div>
+
+                   {updateError && <p className="text-rose-600 text-xs font-bold text-center">{updateError}</p>}
+
+                   <button onClick={submitEditUser} disabled={updating} className="w-full py-4 bg-emerald-primary text-white font-black rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all uppercase tracking-[0.2em] mt-4">
+                      {updating ? "Processing..." : "Commit Changes"}
+                   </button>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

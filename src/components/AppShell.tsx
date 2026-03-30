@@ -55,37 +55,42 @@ export default function AppShell() {
 
   const role = user?.role ?? null
 
-  const initials = (user?.name ?? '')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join('')
-
   const profileItems: ActionDropdownItem[] = [
     {
-      label: 'Logout',
+      label: 'My Profile',
+      onClick: () => navigate('/settings'),
+    },
+    { type: 'separator' },
+    {
+      label: 'Log out',
       danger: true,
       onClick: logout,
     },
   ]
 
-
   useEffect(() => {
     setIsMobileMenuOpen(false)
   }, [location.pathname])
 
-  function toggleTheme() {
-    const next: ThemeMode = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    setThemeState(next)
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    setTheme(newTheme)
+    setThemeState(newTheme)
   }
 
-  const currentPageLabel = NAV_ITEMS.find((item) => item.to === location.pathname)?.label || 'Dashboard'
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+    : 'U'
+
+  const currentPageLabel = NAV_ITEMS.find((i) => i.to === location.pathname)?.label ?? 'SFMS'
 
   return (
-    <div className="flex h-full min-h-screen bg-lemon-cream dark:bg-slate-950 transition-colors duration-300">
-      {/* Mobile Sidebar Overlay */}
+    <div className={`flex h-screen w-full overflow-hidden bg-lemon-cream text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100 font-sans`}>
+      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
@@ -100,25 +105,22 @@ export default function AppShell() {
 
       {/* Sidebar */}
       <motion.aside
-        initial={false}
         animate={{
-          width: isSidebarOpen ? 280 : 88,
+          width: isSidebarOpen ? '280px' : '88px',
           x: isMobileMenuOpen ? 0 : (window.innerWidth < 1024 ? -280 : 0)
         }}
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col glass-effect lg:static lg:translate-x-0 ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200/50 dark:bg-slate-900 dark:border-slate-800 lg:static lg:translate-x-0 transition-all duration-300 ease-in-out`}
       >
         <div className="flex h-20 items-center justify-between px-6">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-primary text-white shadow-lg shadow-emerald-200 dark:shadow-none">
-              <FolderOpen size={20} />
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-primary text-white shadow-lg shadow-emerald-primary/20">
+              <FolderOpen size={22} />
             </div>
             {isSidebarOpen && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="whitespace-nowrap font-bold text-slate-900 dark:text-white"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="text-xl font-black tracking-tight text-slate-900 dark:text-white"
               >
                 FileCloud <span className="text-emerald-primary text-xs font-medium">PRO</span>
               </motion.div>
@@ -172,12 +174,12 @@ export default function AppShell() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800">
            {isSidebarOpen ? (
-             <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-3xl p-4">
-                <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Storage</div>
-                <div className="mt-2 h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-primary w-[65%]" />
+             <div className="rounded-3xl bg-emerald-50/50 p-5 dark:bg-emerald-950/20">
+                <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Storage</div>
+                <div className="mt-3 h-2 w-full rounded-full bg-emerald-200/30 dark:bg-emerald-900/30 overflow-hidden">
+                   <div className="h-full w-[65%] rounded-full bg-emerald-primary shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
                 </div>
                 <div className="mt-2 text-xs text-slate-600 dark:text-slate-400 flex justify-between">
                   <span>12.4 GB of 20 GB</span>
@@ -271,7 +273,7 @@ export default function AppShell() {
               {location.pathname === '/file-manager' && (
                 <button className="flex items-center gap-2 px-5 py-2.5 bg-emerald-primary text-white rounded-2xl font-semibold shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all">
                    <FolderOpen size={18} />
-                   <span>Upload New</span>
+                   <span>Explorer View</span>
                 </button>
               )}
             </div>

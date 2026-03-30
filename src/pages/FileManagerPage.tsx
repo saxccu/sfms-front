@@ -649,7 +649,6 @@ export default function FileManagerPage() {
     setTimeout(() => setNotice(null), 4000);
   }
 
-
   async function submitShare() {
     if (!shareFilePath) {
       setShareError("Missing file");
@@ -775,7 +774,6 @@ export default function FileManagerPage() {
     setAssignOpen(true);
   }
 
-
   useEffect(() => {
     let cancelled = false;
 
@@ -827,7 +825,6 @@ export default function FileManagerPage() {
     setUploadMemberId("");
     setUploadOpen(true);
   }
-
 
   async function submitUpload() {
     const dateValue = uploadDate.trim();
@@ -1060,13 +1057,11 @@ export default function FileManagerPage() {
     setCreateRootOpen(true);
   }
 
-
   function openCreateSubDialog() {
     setCreateSubError(null);
     setNewSubFolderName("");
     setCreateSubOpen(true);
   }
-
 
   async function submitCreateRootFolder() {
     const name = newRootFolderName.trim();
@@ -1198,7 +1193,7 @@ export default function FileManagerPage() {
         },
         { label: "Share", icon: Share2, onClick: () => openShareDialog(e) },
         { type: "separator" },
-        { label: "Copy", icon: Share2, onClick: () => copyEntry(e) },
+        { label: "Copy", icon: Copy, onClick: () => copyEntry(e) },
         { label: "Cut", icon: Edit3, onClick: () => cutEntry(e) },
         ...(isSuperAdmin || isBranchManager ? [
           { type: "separator" },
@@ -1218,7 +1213,7 @@ export default function FileManagerPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search in current directory..."
-            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-4 focus:ring-emerald-primary/10 transition-all outline-none shadow-sm"
+            className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-4 focus:ring-emerald-primary/10 transition-all outline-none shadow-sm font-bold"
            />
         </div>
 
@@ -1328,7 +1323,7 @@ export default function FileManagerPage() {
       {/* Errors & Notices */}
       <AnimatePresence>
         {(branchError || rootFoldersError || folderEntriesError) && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 p-4 text-sm text-rose-800 dark:text-rose-300">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 p-4 text-sm text-rose-800 dark:text-rose-300 font-bold">
             {branchError || rootFoldersError || folderEntriesError}
           </motion.div>
         )}
@@ -1355,8 +1350,8 @@ export default function FileManagerPage() {
                     <Folder className="text-slate-200" size={64} />
                  </div>
                </div>
-               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Directory is empty</h3>
-               <p className="text-slate-500 mt-2">Try changing your filters or upload a new file.</p>
+               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-widest">Directory is empty</h3>
+               <p className="text-slate-500 mt-2 font-bold">Try changing your filters or upload a new file.</p>
             </div>
           ) : (
             filteredItems.map((e) => (
@@ -1381,7 +1376,7 @@ export default function FileManagerPage() {
                 <div className="mt-6">
                    <div
                     onClick={() => e.entry_type === 'folder' && openFolder({ branch_id: branchId ?? 0, name: e.name, relative_path: e.relative_path })}
-                    className="text-lg font-bold text-slate-900 dark:text-white truncate cursor-pointer hover:text-emerald- primary transition-colors"
+                    className="text-lg font-bold text-slate-900 dark:text-white truncate cursor-pointer hover:text-emerald-primary transition-colors"
                     title={e.name}
                    >
                      {e.name}
@@ -1467,8 +1462,8 @@ export default function FileManagerPage() {
              >
                 {createRootOpen && (
                   <>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Create Parent Folder</h2>
-                    <p className="text-slate-500 font-medium mb-8">Add a new main category to this branch</p>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-widest">Create Parent Folder</h2>
+                    <p className="text-slate-500 font-bold mb-8">Add a new main category to this branch</p>
                     <div className="space-y-6">
                        <div className="space-y-2">
                           <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Folder Name</label>
@@ -1476,14 +1471,14 @@ export default function FileManagerPage() {
                             value={newRootFolderName}
                             onChange={(e) => setNewRootFolderName(e.target.value)}
                             placeholder="e.g. Marketing Projects"
-                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold"
+                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold shadow-sm"
                           />
                        </div>
                        {createRootError && <p className="text-rose-500 text-sm font-bold">{createRootError}</p>}
                        <button
                         onClick={submitCreateRootFolder}
                         disabled={createRootLoading}
-                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50 uppercase tracking-widest"
                        >
                          {createRootLoading ? "Creating..." : "Confirm & Create"}
                        </button>
@@ -1493,8 +1488,8 @@ export default function FileManagerPage() {
 
                 {createSubOpen && (
                    <>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">New Sub-Folder</h2>
-                    <p className="text-slate-500 font-medium mb-8">Creating inside: {currentFolder?.name}</p>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-widest">New Sub-Folder</h2>
+                    <p className="text-slate-500 font-bold mb-8">Creating inside: {currentFolder?.name}</p>
                     <div className="space-y-6">
                        <div className="space-y-2">
                           <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Folder Name</label>
@@ -1502,14 +1497,14 @@ export default function FileManagerPage() {
                             value={newSubFolderName}
                             onChange={(e) => setNewSubFolderName(e.target.value)}
                             placeholder="e.g. Q4 Invoices"
-                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold"
+                            className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold shadow-sm"
                           />
                        </div>
                        {createSubError && <p className="text-rose-500 text-sm font-bold">{createSubError}</p>}
                        <button
                         onClick={submitCreateSubFolder}
                         disabled={createSubLoading}
-                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50 uppercase tracking-widest"
                        >
                          {createSubLoading ? "Creating..." : "Confirm & Create"}
                        </button>
@@ -1519,20 +1514,20 @@ export default function FileManagerPage() {
 
                 {uploadOpen && (
                   <>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Upload Asset</h2>
-                    <p className="text-slate-500 font-medium mb-8">Select file and metadata to upload</p>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-widest">Upload Asset</h2>
+                    <p className="text-slate-500 font-bold mb-8">Select file and metadata to upload</p>
                     <div className="space-y-6">
                        <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Document Date</label>
                              <div className="relative">
                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                               <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold" />
+                               <input type="date" value={uploadDate} onChange={(e) => setUploadDate(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold shadow-sm" />
                              </div>
                           </div>
                           <div className="space-y-2">
                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Friendly Name</label>
-                             <input value={uploadFileName} onChange={(e) => setUploadFileName(e.target.value)} placeholder="File alias..." className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold" />
+                             <input value={uploadFileName} onChange={(e) => setUploadFileName(e.target.value)} placeholder="File alias..." className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold shadow-sm" />
                           </div>
                        </div>
 
@@ -1557,7 +1552,7 @@ export default function FileManagerPage() {
                                   value={uploadMemberId}
                                   onChange={(e) => setUploadMemberId(e.target.value)}
                                   placeholder="Enter Member ID..."
-                                  className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold"
+                                  className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold shadow-sm"
                                 />
                               </motion.div>
                             )}
@@ -1574,7 +1569,7 @@ export default function FileManagerPage() {
                        <button
                         onClick={submitUpload}
                         disabled={uploadLoading}
-                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50 uppercase tracking-widest"
                        >
                          {uploadLoading ? "Uploading..." : "Start Upload"}
                        </button>
@@ -1584,8 +1579,8 @@ export default function FileManagerPage() {
 
                 {assignOpen && (
                    <>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Assign Folder</h2>
-                    <p className="text-slate-500 font-medium mb-8">Set owner for: {assignFolder?.name}</p>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-widest">Assign Folder</h2>
+                    <p className="text-slate-500 font-bold mb-8">Set owner for: {assignFolder?.name}</p>
                     <div className="space-y-6">
                        <div className="space-y-2">
                           <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Select User</label>
@@ -1594,7 +1589,7 @@ export default function FileManagerPage() {
                             <select
                               value={assignUserId}
                               onChange={(e) => setAssignUserId(e.target.value ? Number(e.target.value) : "")}
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold text-sm appearance-none"
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold text-sm appearance-none shadow-sm"
                             >
                               <option value="">Choose a user...</option>
                               {assignUsers.map((u) => (
@@ -1609,7 +1604,7 @@ export default function FileManagerPage() {
                        <button
                         onClick={submitAssignFolder}
                         disabled={assignLoading || assignUserId === ""}
-                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50 uppercase tracking-widest"
                        >
                          {assignLoading ? "Assigning..." : "Assign Owner"}
                        </button>
@@ -1619,8 +1614,8 @@ export default function FileManagerPage() {
 
                 {shareOpen && (
                    <div className="max-w-xl">
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Share Asset</h2>
-                    <p className="text-slate-500 font-medium mb-8">Manage access and share links</p>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-widest">Share Asset</h2>
+                    <p className="text-slate-500 font-bold mb-8">Manage access and share links</p>
 
                     <div className="space-y-6">
                        <div className="space-y-2">
@@ -1631,7 +1626,7 @@ export default function FileManagerPage() {
                               <input
                                 readOnly
                                 value={shareLoading ? "Generating..." : shareLink}
-                                className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-slate-500"
+                                className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-slate-500 shadow-sm"
                               />
                             </div>
                             <button
@@ -1650,7 +1645,7 @@ export default function FileManagerPage() {
                              <select
                                 value={shareRole}
                                 onChange={(e) => setShareRole(e.target.value as any)}
-                                className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold"
+                                className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold shadow-sm"
                              >
                                 <option value="READ_ONLY">Viewer</option>
                                 <option value="EDITOR">Editor</option>
@@ -1660,7 +1655,7 @@ export default function FileManagerPage() {
                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Expires On</label>
                              <div className="relative">
                                 <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                <input type="date" value={shareExpiresOn} onChange={(e) => setShareExpiresOn(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold" />
+                                <input type="date" value={shareExpiresOn} onChange={(e) => setShareExpiresOn(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none text-sm font-bold shadow-sm" />
                              </div>
                           </div>
                        </div>
@@ -1674,24 +1669,24 @@ export default function FileManagerPage() {
                               onChange={(e) => setSharePeopleQuery(e.target.value)}
                               onFocus={() => sharePeopleResults.length > 0 && setSharePeopleDropdownOpen(true)}
                               placeholder="Search by name or email..."
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold text-sm"
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-primary/20 outline-none font-bold text-sm shadow-sm"
                             />
 
                             <AnimatePresence>
                               {sharePeopleDropdownOpen && (
                                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-2 shadow-2xl">
                                    {sharePeopleLoading ? (
-                                     <div className="p-4 text-center text-sm font-bold text-slate-400">Searching...</div>
+                                     <div className="p-4 text-center text-sm font-bold text-slate-400 tracking-widest uppercase">Searching...</div>
                                    ) : sharePeopleError ? (
                                       <div className="p-4 text-center text-sm font-bold text-rose-500">{sharePeopleError}</div>
                                    ) : sharePeopleResults.length === 0 ? (
-                                     <div className="p-4 text-center text-sm font-bold text-slate-400">No users found</div>
+                                     <div className="p-4 text-center text-sm font-bold text-slate-400 tracking-widest uppercase">No users found</div>
                                    ) : (
                                      sharePeopleResults.map((u) => (
                                        <button key={u.id} onClick={() => addSharePerson(u)} className="flex items-center justify-between w-full p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors text-left group">
                                           <div>
-                                            <div className="font-bold text-slate-900 dark:text-white">{u.name}</div>
-                                            <div className="text-xs text-slate-500">{u.email}</div>
+                                            <div className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">{u.name}</div>
+                                            <div className="text-xs text-slate-500 font-bold italic">{u.email}</div>
                                           </div>
                                           <Plus size={18} className="text-slate-300 group-hover:text-emerald-primary transition-colors" />
                                        </button>
@@ -1706,7 +1701,7 @@ export default function FileManagerPage() {
                        {shareSelectedPeople.length > 0 && (
                          <div className="flex flex-wrap gap-2">
                             {shareSelectedPeople.map((p) => (
-                              <div key={p.id} className="flex items-center gap-2 pl-3 pr-1.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-bold">
+                              <div key={p.id} className="flex items-center gap-2 pl-3 pr-1.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-100 dark:border-emerald-800">
                                  <span>{p.name}</span>
                                  <button onClick={() => removeSharePerson(p.id)} className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-md transition-colors"><X size={12} /></button>
                               </div>
@@ -1718,7 +1713,7 @@ export default function FileManagerPage() {
                        <button
                         onClick={submitShare}
                         disabled={shareLoading || shareSelectedPeople.length === 0}
-                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-200 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50"
+                        className="w-full py-4 bg-emerald-primary text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all disabled:opacity-50 uppercase tracking-widest"
                        >
                          {shareLoading ? "Sharing..." : "Share with Selected"}
                        </button>

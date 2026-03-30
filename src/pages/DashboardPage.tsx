@@ -43,6 +43,8 @@ export default function DashboardPage() {
       created_at: string;
     }>
   >([]);
+  const [totalSize, setTotalSize] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const RECENT_PAGE_SIZE = 5;
   const [recentPage, setRecentPage] = useState(1);
@@ -51,7 +53,6 @@ export default function DashboardPage() {
     let cancelled = false;
 
     async function loadSummary() {
-      // Fetch for everyone if branch_id is available, or use a default if super admin
       const bid = user?.branch_id;
       if (!bid && !isSuperAdmin) return;
 
@@ -60,9 +61,11 @@ export default function DashboardPage() {
       try {
         const url = bid
           ? `/files/dashboard-summary?branch_id=${encodeURIComponent(String(bid))}`
-          : `/files/dashboard-summary`; // Adjust if API supports global summary
+          : `/files/dashboard-summary`;
 
         const res = await apiFetch<{
+          total_size?: number;
+          total_count?: number;
           categories: Array<{ key: string; label: string; count: number }>;
           recent: Array<{
             file_name: string;
@@ -76,6 +79,8 @@ export default function DashboardPage() {
         if (!cancelled) {
           setCategories(res.categories);
           setRecent(res.recent);
+          setTotalSize(res.total_size ?? 0);
+          setTotalCount(res.total_count ?? 0);
         }
       } catch (err) {
         if (!cancelled) {
@@ -126,12 +131,12 @@ export default function DashboardPage() {
   }
 
   const stats = useMemo(() => {
-    const totalFiles = categories.reduce((acc, c) => acc + c.count, 0);
-    const storageUsed = recent.reduce((acc, r) => acc + r.file_size, 0);
+    const effectiveTotalCount = totalCount || categories.reduce((acc, c) => acc + c.count, 0);
+    const effectiveTotalSize = totalSize || recent.reduce((acc, r) => acc + r.file_size, 0);
 
     return [
-      { label: "Total Files", value: totalFiles.toLocaleString(), icon: File, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
-      { label: "Storage Used", value: fmtSize(storageUsed), icon: HardDrive, color: "text-emerald-primary", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
+      { label: "Total Files", value: effectiveTotalCount.toLocaleString(), icon: File, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
+      { label: "Storage Used", value: fmtSize(effectiveTotalSize), icon: HardDrive, color: "text-emerald-primary", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
       { label: "Active Users", value: isSuperAdmin ? "24" : "1", icon: BarChart3, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-900/20" },
       { label: "Recent Uploads", value: recent.filter(r => {
           const d = new Date(r.created_at);
@@ -214,7 +219,7 @@ export default function DashboardPage() {
              </svg>
              <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-black text-slate-900 dark:text-white">
-                  {Math.min(100, Math.round((recent.reduce((acc, r) => acc + r.file_size, 0) / (1 * 1024 * 1024 * 1024)) * 100))}%
+                  {Math.min(100, Math.round(((totalSize || recent.reduce((acc, r) => acc + r.file_size, 0)) / (1 * 1024 * 1024 * 1024)) * 100))}%
                 </span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Storage</span>
              </div>
@@ -237,7 +242,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          <button className="mt-8 w-full py-3.5 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 dark:shadow-none">
+          <button className="mt-8 w-full py-3.5 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-lg shadow-black/20 dark:shadow-none">
             Manage Storage
           </button>
         </motion.div>
