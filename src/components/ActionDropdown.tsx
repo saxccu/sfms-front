@@ -114,7 +114,7 @@ export default function ActionDropdown({ items, buttonLabel = 'Action', buttonCl
             >
               {menuItems.map((it, idx) => {
                 if (it.type === 'separator') {
-                  return <div key={`sep-${idx}`} className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                  return <div key={`sep-${idx}`} className="my-1 border-t border-slate-100 dark:border-brand-800" />
                 }
 
                 const disabled = !!it.disabled

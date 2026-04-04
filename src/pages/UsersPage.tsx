@@ -485,7 +485,7 @@ export default function UsersPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search users by name, username, or email..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
         </div>
 
@@ -495,7 +495,7 @@ export default function UsersPage() {
             onChange={(e) =>
               setFilterBranchId(e.target.value ? Number(e.target.value) : "")
             }
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 md:w-56">
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100 md:w-56">
             <option value="">All Branches</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
@@ -508,7 +508,7 @@ export default function UsersPage() {
         <select
           value={filterRole}
           onChange={(e) => setFilterRole(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 md:w-56">
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100 md:w-56">
           <option value="">All Roles</option>
           {ROLE_OPTIONS.filter((r) =>
             isBranchManager
@@ -657,7 +657,7 @@ export default function UsersPage() {
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
               Prev
             </button>
             <div className="text-xs font-medium text-slate-700 dark:text-slate-200">
@@ -667,7 +667,7 @@ export default function UsersPage() {
               type="button"
               onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
               disabled={safePage >= pageCount}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
               Next
             </button>
           </div>
@@ -680,7 +680,7 @@ export default function UsersPage() {
             className="absolute inset-0 bg-slate-900/40"
             onClick={closeAddDialog}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-brand-800 dark:bg-brand-950">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -693,7 +693,7 @@ export default function UsersPage() {
               <button
                 onClick={closeAddDialog}
                 disabled={creating}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 ✕
               </button>
             </div>
@@ -708,7 +708,7 @@ export default function UsersPage() {
                   onChange={(e) => setAddName(e.target.value)}
                   placeholder="John Doe"
                   disabled={creating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -721,7 +721,7 @@ export default function UsersPage() {
                   onChange={(e) => setAddUsername(e.target.value)}
                   placeholder="jdoe"
                   disabled={creating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -734,7 +734,7 @@ export default function UsersPage() {
                   onChange={(e) => setAddEmail(e.target.value)}
                   placeholder="john@company.com"
                   disabled={creating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -748,7 +748,7 @@ export default function UsersPage() {
                   onChange={(e) => setAddPassword(e.target.value)}
                   placeholder="********"
                   disabled={creating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -761,7 +761,7 @@ export default function UsersPage() {
                     value={addRole}
                     onChange={(e) => setAddRole(e.target.value)}
                     disabled={creating}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100">
                     {ROLE_OPTIONS.map((r) => (
                       <option key={r.value} value={r.value}>
                         {r.label}
@@ -782,7 +782,7 @@ export default function UsersPage() {
                       )
                     }
                     disabled={creating || addRole === "SUPER_ADMIN"}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100">
                     <option value="">Select branch</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -833,7 +833,7 @@ export default function UsersPage() {
               <button
                 onClick={closeAddDialog}
                 disabled={creating}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 Cancel
               </button>
               <button
@@ -853,7 +853,7 @@ export default function UsersPage() {
             className="absolute inset-0 bg-slate-900/40"
             onClick={closeEditDialog}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-brand-800 dark:bg-brand-950">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -866,7 +866,7 @@ export default function UsersPage() {
               <button
                 onClick={closeEditDialog}
                 disabled={updating}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 ✕
               </button>
             </div>
@@ -880,7 +880,7 @@ export default function UsersPage() {
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   disabled={updating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -892,7 +892,7 @@ export default function UsersPage() {
                   value={editUsername}
                   onChange={(e) => setEditUsername(e.target.value)}
                   disabled={updating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -904,7 +904,7 @@ export default function UsersPage() {
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
                   disabled={updating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -917,7 +917,7 @@ export default function UsersPage() {
                   value={editPassword}
                   onChange={(e) => setEditPassword(e.target.value)}
                   disabled={updating}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -930,7 +930,7 @@ export default function UsersPage() {
                     value={editRole}
                     onChange={(e) => setEditRole(e.target.value)}
                     disabled={updating}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100">
                     {ROLE_OPTIONS.filter((r) =>
                       isBranchManager
                         ? r.value !== "SUPER_ADMIN" &&
@@ -957,7 +957,7 @@ export default function UsersPage() {
                         )
                       }
                       disabled={updating || editRole === "SUPER_ADMIN"}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100">
                       <option value="">Select branch</option>
                       {branches.map((b) => (
                         <option key={b.id} value={b.id}>
@@ -985,7 +985,7 @@ export default function UsersPage() {
               <button
                 onClick={closeEditDialog}
                 disabled={updating}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 Cancel
               </button>
               <button

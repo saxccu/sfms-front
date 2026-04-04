@@ -61,18 +61,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-[#FAF9F6] text-slate-900">
+    <div className="h-screen w-full overflow-hidden bg-brand-50 text-slate-900">
       <div className="grid h-full grid-cols-1 lg:grid-cols-[1.2fr_0.8fr]">
         <div
           className="relative hidden bg-cover bg-center lg:block"
           style={{ backgroundImage: "url('/login-hero.jpg.jpg')" }}>
-          <div className="absolute inset-0 bg-emerald-950/40" />
+          <div className="absolute inset-0 bg-brand-950/45" />
           <div className="absolute inset-0 opacity-50 [background:radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.18),transparent_55%),radial-gradient(circle_at_70%_65%,rgba(255,255,255,0.12),transparent_55%)]" />
 
           <div className="relative flex h-full flex-col justify-end p-16">
             <div className="text-4xl font-bold tracking-tight text-white xl:text-6xl">
               Secure. Seamless. <br />
-              <span className="text-emerald-400">Connected.</span>
+              <span className="text-brand-400">Connected.</span>
             </div>
             <div className="mt-6 max-w-lg text-lg text-white/90">
               The Samartex Co-Operative Credit Union File Management System
@@ -81,7 +81,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-center bg-[#FAF9F6] px-4 py-6">
+        <div className="flex items-center justify-center bg-brand-50 px-4 py-6">
           <div className="w-full max-w-sm">
             <div className="flex flex-col items-center text-center">
               <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5">
@@ -91,7 +91,7 @@ export default function LoginPage() {
                   className="h-full w-full object-contain"
                 />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-emerald-950">
+              <h1 className="text-2xl font-bold tracking-tight text-brand-900">
                 Welcome Back
               </h1>
               <p className="mt-2 text-sm text-slate-500">
@@ -99,7 +99,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="mt-10 rounded-[2.5rem] bg-white p-10 shadow-xl shadow-emerald-900/5 ring-1 ring-black/5">
+            <div className="mt-10 rounded-[2.5rem] bg-white p-10 shadow-xl shadow-brand-900/8 ring-1 ring-black/5">
               <form onSubmit={onSubmit} className="space-y-6">
                 {notice ? (
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -118,7 +118,7 @@ export default function LoginPage() {
                     autoComplete="username"
                     placeholder="Enter your username"
                     required
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/15"
                   />
                 </div>
 
@@ -132,14 +132,14 @@ export default function LoginPage() {
                     type="password"
                     placeholder="••••••••"
                     required
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/15"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-2xl bg-emerald-900 py-4 text-sm font-bold text-white transition-all hover:bg-emerald-800 hover:shadow-lg hover:shadow-emerald-900/20 disabled:cursor-not-allowed disabled:opacity-60">
+                  className="w-full rounded-2xl bg-brand-800 py-4 text-sm font-bold text-white transition-all hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-900/25 disabled:cursor-not-allowed disabled:opacity-60">
                   {loading ? "Signing in..." : "Log In to SFMS"}
                 </button>
 

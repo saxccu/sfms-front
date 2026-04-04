@@ -1133,7 +1133,7 @@ export default function FileManagerPage() {
             className={`inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
               viewMode === "grid"
                 ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900"
             }`}
             aria-label={
               viewMode === "grid"
@@ -1156,7 +1156,7 @@ export default function FileManagerPage() {
             <button
               onClick={openCreateRootDialog}
               disabled={isBranchManager && !!currentFolder}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
               <span className="text-base leading-none">+</span>
               Create Parent Folder
             </button>
@@ -1180,7 +1180,7 @@ export default function FileManagerPage() {
           <button
             onClick={openCreateSubDialog}
             disabled={!branchId || !currentFolder}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
             <span className="text-base leading-none">+</span>
             New Folder
           </button>
@@ -1228,7 +1228,7 @@ export default function FileManagerPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search files and folders..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
         </div>
 
@@ -1241,7 +1241,7 @@ export default function FileManagerPage() {
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -1252,7 +1252,7 @@ export default function FileManagerPage() {
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
             />
           </div>
           <button
@@ -1261,7 +1261,7 @@ export default function FileManagerPage() {
               setFromDate("");
               setToDate("");
             }}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
             Clear
           </button>
         </div>
@@ -1273,7 +1273,7 @@ export default function FileManagerPage() {
               setBranchId(e.target.value ? Number(e.target.value) : null)
             }
             disabled={!isSuperAdmin}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 md:min-w-56">
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100 md:min-w-56">
             {branches.length === 0 ? (
               <option value="">No branches</option>
             ) : null}
@@ -1547,7 +1547,7 @@ export default function FileManagerPage() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-brand-800 dark:bg-brand-950">
           {rootFoldersLoading || folderEntriesLoading ? (
             <div className="px-2 py-10 text-center text-sm text-slate-500">
               Loading…
@@ -1582,7 +1582,7 @@ export default function FileManagerPage() {
                   .map((e) => (
                     <div
                       key={e.relative_path}
-                      className="rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
+                      className="rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 dark:border-brand-800 dark:bg-brand-950 dark:hover:bg-slate-900/60">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-start gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
@@ -1695,7 +1695,7 @@ export default function FileManagerPage() {
                 .map((f) => (
                   <div
                     key={f.relative_path}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
+                    className="rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 dark:border-brand-800 dark:bg-brand-950 dark:hover:bg-slate-900/60">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
@@ -1782,7 +1782,7 @@ export default function FileManagerPage() {
             className="absolute inset-0 bg-slate-900/40"
             onClick={closeCreateRootDialog}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-brand-800 dark:bg-brand-950">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -1795,7 +1795,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeCreateRootDialog}
                 disabled={createRootLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 ✕
               </button>
             </div>
@@ -1810,7 +1810,7 @@ export default function FileManagerPage() {
                   onChange={(e) => setNewRootFolderName(e.target.value)}
                   placeholder="Documents"
                   disabled={createRootLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -1825,7 +1825,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeCreateRootDialog}
                 disabled={createRootLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 Cancel
               </button>
               <button
@@ -1845,7 +1845,7 @@ export default function FileManagerPage() {
             className="absolute inset-0 bg-slate-900/40"
             onClick={closeCreateSubDialog}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-brand-800 dark:bg-brand-950">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -1858,7 +1858,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeCreateSubDialog}
                 disabled={createSubLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 ✕
               </button>
             </div>
@@ -1873,7 +1873,7 @@ export default function FileManagerPage() {
                   onChange={(e) => setNewSubFolderName(e.target.value)}
                   placeholder="Documents"
                   disabled={createSubLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -1888,7 +1888,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeCreateSubDialog}
                 disabled={createSubLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 Cancel
               </button>
               <button
@@ -1908,7 +1908,7 @@ export default function FileManagerPage() {
             className="absolute inset-0 bg-slate-900/40"
             onClick={closeAssignDialog}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-brand-800 dark:bg-brand-950">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -1921,7 +1921,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeAssignDialog}
                 disabled={assignLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 ✕
               </button>
             </div>
@@ -1939,7 +1939,7 @@ export default function FileManagerPage() {
                     )
                   }
                   disabled={assignLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100">
                   <option value="">Select user</option>
                   {assignUsers.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -1960,7 +1960,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeAssignDialog}
                 disabled={assignLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 Cancel
               </button>
               <button
@@ -1980,7 +1980,7 @@ export default function FileManagerPage() {
             className="absolute inset-0 bg-slate-900/40"
             onClick={closeUploadDialog}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-brand-800 dark:bg-brand-950">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -1993,7 +1993,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeUploadDialog}
                 disabled={uploadLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 ✕
               </button>
             </div>
@@ -2008,7 +2008,7 @@ export default function FileManagerPage() {
                   value={uploadDate}
                   onChange={(e) => setUploadDate(e.target.value)}
                   disabled={uploadLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -2021,7 +2021,7 @@ export default function FileManagerPage() {
                   onChange={(e) => setUploadFileName(e.target.value)}
                   placeholder="receipt-001"
                   disabled={uploadLoading}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                 />
               </label>
 
@@ -2047,7 +2047,7 @@ export default function FileManagerPage() {
                     onChange={(e) => setUploadMemberId(e.target.value)}
                     placeholder="MEM-001"
                     disabled={uploadLoading}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                   />
                 </label>
               ) : null}
@@ -2075,7 +2075,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeUploadDialog}
                 disabled={uploadLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 Cancel
               </button>
               <button
@@ -2095,7 +2095,7 @@ export default function FileManagerPage() {
             className="absolute inset-0 bg-slate-900/40"
             onClick={closeShareDialog}
           />
-          <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+          <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-brand-800 dark:bg-brand-950">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -2108,7 +2108,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeShareDialog}
                 disabled={shareLoading}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 ✕
               </button>
             </div>
@@ -2130,7 +2130,7 @@ export default function FileManagerPage() {
                         )
                       }
                       disabled={shareLoading}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100">
                       <option value="READ_ONLY">Read only</option>
                       <option value="EDITOR">Editor</option>
                     </select>
@@ -2145,7 +2145,7 @@ export default function FileManagerPage() {
                       value={shareExpiresOn}
                       onChange={(e) => setShareExpiresOn(e.target.value)}
                       disabled={shareLoading}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                     />
                   </label>
                 </div>
@@ -2158,12 +2158,12 @@ export default function FileManagerPage() {
                     <input
                       value={shareLoading ? "Generating…" : shareLink}
                       readOnly
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                     />
                     <button
                       onClick={() => void copyShareLink()}
                       disabled={shareLoading || !shareLink}
-                      className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                      className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                       Copy link
                     </button>
                   </div>
@@ -2184,11 +2184,11 @@ export default function FileManagerPage() {
                     }}
                     placeholder="Search by user name..."
                     disabled={shareLoading}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100"
                   />
 
                   {sharePeopleDropdownOpen ? (
-                    <div className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-800 dark:bg-slate-950">
+                    <div className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-brand-800 dark:bg-brand-950">
                       {sharePeopleLoading ? (
                         <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
                           Searching…
@@ -2231,7 +2231,7 @@ export default function FileManagerPage() {
                     {shareSelectedPeople.map((p) => (
                       <div
                         key={p.id}
-                        className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-950">
+                        className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-brand-800 dark:bg-brand-950">
                         <div className="min-w-0">
                           <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                             {p.name}{" "}
@@ -2246,7 +2246,7 @@ export default function FileManagerPage() {
                         <button
                           type="button"
                           onClick={() => removeSharePerson(p.id)}
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                           Remove
                         </button>
                       </div>
@@ -2271,7 +2271,7 @@ export default function FileManagerPage() {
               <button
                 onClick={closeShareDialog}
                 disabled={shareLoading}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                 Cancel
               </button>
               <button

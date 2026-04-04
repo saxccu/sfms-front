@@ -168,7 +168,7 @@ export default function SharedFilesPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search shared files..."
-          className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+          className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100 dark:placeholder:text-slate-500"
         />
       </div>
 

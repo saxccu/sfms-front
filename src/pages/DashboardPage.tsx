@@ -223,7 +223,7 @@ export default function DashboardPage() {
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-brand-800 dark:bg-brand-950">
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
               Category
             </div>
@@ -275,7 +275,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-brand-800 dark:bg-brand-950">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -292,7 +292,7 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => setRecentPage((p) => Math.max(1, p - 1))}
                       disabled={safeRecentPage <= 1}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                       Prev
                     </button>
                     <div className="text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -304,7 +304,7 @@ export default function DashboardPage() {
                         setRecentPage((p) => Math.min(recentTotalPages, p + 1))
                       }
                       disabled={safeRecentPage >= recentTotalPages}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                       Next
                     </button>
                   </div>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
 
                 <a
                   href="/file-manager"
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                   View all
                 </a>
               </div>
@@ -320,11 +320,11 @@ export default function DashboardPage() {
 
             <div className="mt-4 space-y-2">
               {summaryLoading ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-brand-800 dark:bg-slate-900 dark:text-slate-300">
                   Loading…
                 </div>
               ) : recent.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-brand-800 dark:bg-slate-900 dark:text-slate-300">
                   No recent files.
                 </div>
               ) : (
@@ -368,7 +368,7 @@ export default function DashboardPage() {
           {stats.map((s) => (
             <div
               key={s.label}
-              className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+              className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-brand-800 dark:bg-brand-950">
               <div className="text-sm font-medium text-slate-600 dark:text-slate-300">
                 {s.label}
               </div>
@@ -386,7 +386,7 @@ export default function DashboardPage() {
       {!isRegularUser && (
         <>
           <div className="grid gap-4 xl:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1 dark:border-slate-800 dark:bg-slate-950">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1 dark:border-brand-800 dark:bg-brand-950">
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 File Types
               </div>
@@ -404,9 +404,9 @@ export default function DashboardPage() {
                         {t.pct}%
                       </div>
                     </div>
-                    <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-900">
+                    <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-brand-900">
                       <div
-                        className="h-2 rounded-full bg-slate-900 dark:bg-slate-200"
+                        className="h-2 rounded-full bg-brand-600 dark:bg-brand-400"
                         style={{ width: `${t.pct}%` }}
                       />
                     </div>
@@ -415,7 +415,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-slate-800 dark:bg-slate-950">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-brand-800 dark:bg-brand-950">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -425,7 +425,7 @@ export default function DashboardPage() {
                     Recently uploaded or modified files
                   </div>
                 </div>
-                <button className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                <button className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                   View all
                 </button>
               </div>
@@ -453,7 +453,7 @@ export default function DashboardPage() {
 
           <div className="grid gap-4 xl:grid-cols-3">
             {isBranchManager ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-slate-800 dark:bg-slate-950">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-brand-800 dark:bg-brand-950">
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   My Branch
                 </div>
@@ -463,7 +463,7 @@ export default function DashboardPage() {
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <a
                     href="/file-manager"
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-brand-800 dark:bg-brand-950 dark:hover:bg-slate-900/60">
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       Manage Files
                     </div>
@@ -473,7 +473,7 @@ export default function DashboardPage() {
                   </a>
                   <a
                     href="/shared-files"
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-brand-800 dark:bg-brand-950 dark:hover:bg-slate-900/60">
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       Shared Files
                     </div>
@@ -483,7 +483,7 @@ export default function DashboardPage() {
                   </a>
                   <a
                     href="/users"
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/60">
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-brand-800 dark:bg-brand-950 dark:hover:bg-slate-900/60">
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       Users
                     </div>
@@ -494,7 +494,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-slate-800 dark:bg-slate-950">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-brand-800 dark:bg-brand-950">
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   Branch Storage
                 </div>
@@ -512,9 +512,9 @@ export default function DashboardPage() {
                           {b.used}
                         </div>
                       </div>
-                      <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-900">
+                      <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-brand-900">
                         <div
-                          className="h-2 rounded-full bg-slate-900 dark:bg-slate-200"
+                          className="h-2 rounded-full bg-brand-600 dark:bg-brand-400"
                           style={{ width: `${b.pct}%` }}
                         />
                       </div>
@@ -524,7 +524,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1 dark:border-slate-800 dark:bg-slate-950">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1 dark:border-brand-800 dark:bg-brand-950">
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 Activity Log
               </div>
@@ -535,7 +535,7 @@ export default function DashboardPage() {
                 {activity.map((a, idx) => (
                   <div
                     key={idx}
-                    className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
+                    className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 dark:border-brand-800 dark:bg-slate-900">
                     <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                       {a.who}
                     </div>

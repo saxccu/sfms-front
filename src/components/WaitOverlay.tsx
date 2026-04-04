@@ -7,10 +7,10 @@ export default function WaitOverlay() {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/50" />
-      <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl dark:border-slate-800 dark:bg-slate-950">
+      <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl dark:border-brand-800 dark:bg-brand-950">
         <div className="text-base font-semibold text-slate-900 dark:text-slate-100">{state.message || 'Please wait…'}</div>
         <div className="mt-5 flex items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900 dark:border-slate-800 dark:border-t-slate-100" />
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900 dark:border-brand-800 dark:border-t-slate-100" />
         </div>
       </div>
     </div>

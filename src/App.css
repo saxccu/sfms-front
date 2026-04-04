@@ -65,8 +65,8 @@
 }
 
 .nav__item--active {
-  background: rgba(100, 108, 255, 0.2);
-  border: 1px solid rgba(100, 108, 255, 0.35);
+  background: rgba(13, 148, 136, 0.18);
+  border: 1px solid rgba(20, 184, 166, 0.35);
 }
 
 .content {
@@ -108,7 +108,7 @@
 }
 
 .cardlink:hover {
-  border-color: rgba(100, 108, 255, 0.6);
+  border-color: rgba(20, 184, 166, 0.45);
 }
 
 .cardlink__title {

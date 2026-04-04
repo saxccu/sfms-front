@@ -253,7 +253,7 @@ export default function MeetPage() {
                 {meetingUrl && (
                   <button
                     onClick={() => setActiveRoom(safeDraftRoom)}
-                    className="w-full flex items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 hover:bg-red-100 dark:border-red-900/30 dark:bg-red-950/30 dark:text-red-400 transition-all">
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-bold text-brand-800 hover:bg-brand-100 dark:border-brand-600/35 dark:bg-brand-950/40 dark:text-brand-300 transition-all">
                     <VideoCameraIcon className="h-5 w-5" />
                     Start Instant Call
                   </button>
@@ -261,7 +261,7 @@ export default function MeetPage() {
               </div>
 
               {saveError && (
-                <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-400">
+                <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-800 dark:bg-rose-950/35 dark:text-rose-300">
                   <InformationCircleIcon className="h-4 w-4" />
                   {saveError}
                 </div>
@@ -276,7 +276,7 @@ export default function MeetPage() {
             <h2 className="text-lg font-bold text-sky-950 mb-6 dark:text-sky-50">Upcoming</h2>
 
             {meetingsError && (
-              <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400 mb-4">
+              <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-950/35 dark:text-rose-300 mb-4">
                 {meetingsError}
               </div>
             )}
@@ -334,13 +334,13 @@ export default function MeetPage() {
 
                       <button
                         onClick={() => setActiveRoom(m.room_name)}
-                        className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-red-700 transition-all">
+                        className="rounded-xl bg-primary-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary-700 transition-all">
                         Join Call
                       </button>
 
                       <button
                         onClick={() => deleteMeeting(m.id)}
-                        className="rounded-xl p-2 text-sky-300 hover:bg-red-50 hover:text-red-600 transition-all"
+                        className="rounded-xl p-2 text-sky-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 transition-all"
                         title="Cancel">
                         <TrashIcon className="h-5 w-5" />
                       </button>
@@ -358,7 +358,7 @@ export default function MeetPage() {
         <div className="fixed inset-0 z-50 flex flex-col bg-sky-950 p-4">
           <div className="flex items-center justify-between px-4 py-2">
             <h3 className="font-bold text-white flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              <div className="h-2 w-2 rounded-full bg-brand-400 animate-pulse" />
               Live Meeting: {activeRoom}
             </h3>
             <button
