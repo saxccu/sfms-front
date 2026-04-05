@@ -1,8 +1,67 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { Link } from "react-router-dom";
+
 import { useAuth } from "../context/AuthContext";
 import { ApiError, apiFetch } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
+
+type DashboardCategory = { key: string; label: string; count: number };
+
+type DashboardRecent = {
+  file_name: string;
+  file_type?: string | null;
+  file_size: number;
+  file_path: string;
+  created_at: string;
+  uploaded_by_name?: string | null;
+};
+
+type DashboardSummaryResponse = {
+  categories: DashboardCategory[];
+  recent: DashboardRecent[];
+  total_files?: number;
+  total_storage_bytes?: number;
+  uploads_last_24h?: number;
+};
+
+type AdminRecent = DashboardRecent & { branch_name: string };
+
+type AdminDashboardResponse = {
+  total_files: number;
+  total_storage_bytes: number;
+  branch_count: number;
+  uploads_last_24h: number;
+  categories: DashboardCategory[];
+  recent: AdminRecent[];
+  branch_storage: Array<{
+    branch_id: number;
+    branch_name: string;
+    bytes_used: number;
+  }>;
+  activity: Array<{
+    user_name: string;
+    description: string;
+    created_at: string;
+  }>;
+};
+
+function formatRelativeTime(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "—";
+  const diffSec = Math.round((d.getTime() - Date.now()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const abs = Math.abs(diffSec);
+  if (abs < 60) return rtf.format(Math.round(diffSec), "second");
+  if (abs < 3600) return rtf.format(Math.round(diffSec / 60), "minute");
+  if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), "hour");
+  if (abs < 604800) return rtf.format(Math.round(diffSec / 86400), "day");
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+}
 
 export default function DashboardPage() {
   usePageTitle("Dashboard");
@@ -17,18 +76,21 @@ export default function DashboardPage() {
 
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [categories, setCategories] = useState<
-    Array<{ key: string; label: string; count: number }>
-  >([]);
-  const [recent, setRecent] = useState<
-    Array<{
-      file_name: string;
-      file_type?: string | null;
-      file_size: number;
-      file_path: string;
-      created_at: string;
-    }>
-  >([]);
+  const [categories, setCategories] = useState<DashboardCategory[]>([]);
+  const [recent, setRecent] = useState<DashboardRecent[]>([]);
+  const [totalFiles, setTotalFiles] = useState(0);
+  const [totalStorageBytes, setTotalStorageBytes] = useState(0);
+  const [uploadsLast24h, setUploadsLast24h] = useState(0);
+
+  const [sharedWithMeCount, setSharedWithMeCount] = useState<number | null>(
+    null,
+  );
+
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [adminData, setAdminData] = useState<AdminDashboardResponse | null>(
+    null,
+  );
 
   const RECENT_PAGE_SIZE = 5;
   const [recentPage, setRecentPage] = useState(1);
@@ -41,20 +103,13 @@ export default function DashboardPage() {
     let cancelled = false;
 
     async function loadSummary() {
-      if (!isRegularUser || !user?.branch_id) return;
+      if (!user?.branch_id) return;
+      if (!isRegularUser && !isBranchManager) return;
+
       setSummaryLoading(true);
       setSummaryError(null);
       try {
-        const res = await apiFetch<{
-          categories: Array<{ key: string; label: string; count: number }>;
-          recent: Array<{
-            file_name: string;
-            file_type?: string | null;
-            file_size: number;
-            file_path: string;
-            created_at: string;
-          }>;
-        }>(
+        const res = await apiFetch<DashboardSummaryResponse>(
           `/files/dashboard-summary?branch_id=${encodeURIComponent(String(user.branch_id))}`,
           { method: "GET" },
           { auth: true },
@@ -62,6 +117,9 @@ export default function DashboardPage() {
         if (!cancelled) {
           setCategories(res.categories);
           setRecent(res.recent);
+          setTotalFiles(res.total_files ?? 0);
+          setTotalStorageBytes(res.total_storage_bytes ?? 0);
+          setUploadsLast24h(res.uploads_last_24h ?? 0);
         }
       } catch (err) {
         if (!cancelled) {
@@ -82,13 +140,76 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [isRegularUser, user?.branch_id]);
+  }, [isRegularUser, isBranchManager, user?.branch_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSharedCount() {
+      if (!isBranchManager || !user?.branch_id) {
+        setSharedWithMeCount(null);
+        return;
+      }
+      try {
+        const rows = await apiFetch<unknown[]>(
+          "/files/shared-with-me",
+          { method: "GET" },
+          { auth: true },
+        );
+        if (!cancelled) setSharedWithMeCount(Array.isArray(rows) ? rows.length : 0);
+      } catch {
+        if (!cancelled) setSharedWithMeCount(null);
+      }
+    }
+
+    loadSharedCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [isBranchManager, user?.branch_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAdmin() {
+      if (!isSuperAdmin) {
+        setAdminData(null);
+        setAdminError(null);
+        return;
+      }
+      setAdminLoading(true);
+      setAdminError(null);
+      try {
+        const res = await apiFetch<AdminDashboardResponse>(
+          "/files/dashboard-admin",
+          { method: "GET" },
+          { auth: true },
+        );
+        if (!cancelled) setAdminData(res);
+      } catch (err) {
+        if (!cancelled) {
+          if (err instanceof ApiError) {
+            setAdminError(
+              `${err.message}${err.bodyText ? ` - ${err.bodyText}` : ""}`,
+            );
+          } else {
+            setAdminError("Failed to load admin dashboard");
+          }
+          setAdminData(null);
+        }
+      } finally {
+        if (!cancelled) setAdminLoading(false);
+      }
+    }
+
+    loadAdmin();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuperAdmin]);
 
   const catByKey = useMemo(() => {
-    const map = new Map<
-      string,
-      { key: string; label: string; count: number }
-    >();
+    const map = new Map<string, DashboardCategory>();
     for (const c of categories) map.set(c.key, c);
     return map;
   }, [categories]);
@@ -134,78 +255,108 @@ export default function DashboardPage() {
     return { key: "documents", label: "Documents" };
   }
 
-  const stats = isBranchManager
-    ? [
-        {
-          label: "My Branch Files",
-          value: "—",
-          sub: `Files in ${branchLabel}`,
-        },
-        {
-          label: "My Branch Storage",
-          value: "—",
-          sub: `Storage used in ${branchLabel}`,
-        },
-        {
-          label: "Shared With Me",
-          value: "—",
-          sub: "Files shared to your account",
-        },
-        {
-          label: "Recent Activity",
-          value: "—",
-          sub: "Actions in last 24 hours",
-        },
-      ]
-    : [
-        { label: "Total Files", value: "12", sub: "Across all branches" },
-        {
-          label: "Storage Used",
-          value: "178.7 MB",
-          sub: "Total storage consumption",
-        },
-        { label: "Branches", value: "4", sub: "Active locations" },
-        {
-          label: "Recent Activity",
-          value: "8",
-          sub: "Actions in last 24 hours",
-        },
-      ];
+  const fileTypesFromCategories = useMemo(() => {
+    const src = adminData?.categories ?? [];
+    const total = src.reduce((s, c) => s + c.count, 0);
+    if (total <= 0) {
+      return src.map((c) => ({ label: c.label, pct: 0 }));
+    }
+    return src.map((c) => ({
+      label: c.label,
+      pct: Math.round((c.count / total) * 100),
+    }));
+  }, [adminData?.categories]);
 
-  const fileTypes = [
-    { label: "Documents", pct: 68 },
-    { label: "Images", pct: 24 },
-    { label: "Videos", pct: 8 },
-  ];
+  const branchStorageBars = useMemo(() => {
+    if (!adminData?.branch_storage?.length) return [];
+    const max = Math.max(
+      ...adminData.branch_storage.map((b) => b.bytes_used),
+      1,
+    );
+    return adminData.branch_storage.map((b) => ({
+      name: b.branch_name,
+      used: fmtSize(b.bytes_used),
+      pct: Math.round((b.bytes_used / max) * 100),
+    }));
+  }, [adminData?.branch_storage]);
 
-  const recentFiles = [
-    { name: "Branch Report.pdf", sub: "branch_1", size: "1.2 MB" },
-    { name: "Invoice Scan.jpg", sub: "branch_1", size: "340 KB" },
-    { name: "Welcome Presentation.pptx", sub: "branch_2", size: "2.8 MB" },
-    { name: "Inventory List.xlsx", sub: "branch_3", size: "820 KB" },
-  ];
+  const branchManagerStats = useMemo(
+    () => [
+      {
+        label: "My Branch Files",
+        value: summaryLoading ? "—" : String(totalFiles),
+        sub: `Files in ${branchLabel}`,
+      },
+      {
+        label: "My Branch Storage",
+        value: summaryLoading ? "—" : fmtSize(totalStorageBytes),
+        sub: `Storage used in ${branchLabel}`,
+      },
+      {
+        label: "Shared With Me",
+        value: sharedWithMeCount === null ? "—" : String(sharedWithMeCount),
+        sub: "Files shared to your account",
+      },
+      {
+        label: "Recent Activity",
+        value: summaryLoading ? "—" : String(uploadsLast24h),
+        sub: "Uploads in the last 24 hours",
+      },
+    ],
+    [
+      branchLabel,
+      sharedWithMeCount,
+      summaryLoading,
+      totalFiles,
+      totalStorageBytes,
+      uploadsLast24h,
+    ],
+  );
 
-  const branchStorage = [
-    { name: "New York Headquarters", used: "23.8 MB", pct: 42 },
-    { name: "Los Angeles Branch", used: "13.0 MB", pct: 28 },
-    { name: "Chicago Branch", used: "12.6 MB", pct: 24 },
-    { name: "Miami Branch", used: "8.4 MB", pct: 18 },
-  ];
+  const superAdminStats = useMemo(
+    () => [
+      {
+        label: "Total Files",
+        value: adminLoading || !adminData ? "—" : String(adminData.total_files),
+        sub: "Across all branches",
+      },
+      {
+        label: "Storage Used",
+        value:
+          adminLoading || !adminData
+            ? "—"
+            : fmtSize(adminData.total_storage_bytes),
+        sub: "Total storage consumption",
+      },
+      {
+        label: "Branches",
+        value:
+          adminLoading || !adminData
+            ? "—"
+            : String(adminData.branch_count),
+        sub: "Registered locations",
+      },
+      {
+        label: "Recent Activity",
+        value:
+          adminLoading || !adminData
+            ? "—"
+            : String(adminData.uploads_last_24h),
+        sub: "Uploads in the last 24 hours",
+      },
+    ],
+    [adminData, adminLoading],
+  );
 
-  const activity = [
-    { who: "System Administrator", what: "logged in", when: "2 minutes ago" },
-    {
-      who: "David Wilson",
-      what: "uploaded Welcome Presentation.pptx",
-      when: "11 minutes ago",
-    },
-    { who: "Mia Chen", what: "created Projects folder", when: "2 hours ago" },
-    {
-      who: "Erica Doe",
-      what: "uploaded Marketing Campaign.pdf",
-      when: "1 day ago",
-    },
-  ];
+  const branchActivityFromRecent = useMemo(
+    () =>
+      recent.map((r) => ({
+        who: r.uploaded_by_name?.trim() || "User",
+        what: `uploaded ${r.file_name}`,
+        when: formatRelativeTime(r.created_at),
+      })),
+    [recent],
+  );
 
   return (
     <div className="space-y-6">
@@ -258,9 +409,9 @@ export default function DashboardPage() {
               ).map((c) => {
                 const count = catByKey.get(c.key)?.count ?? 0;
                 return (
-                  <a
+                  <Link
                     key={c.key}
-                    href="/file-manager"
+                    to="/file-manager"
                     className={`rounded-2xl border p-4 transition-colors hover:bg-white dark:hover:bg-slate-950 ${c.box}`}>
                     <div className="text-sm font-semibold text-slate-900">
                       {c.label}
@@ -269,7 +420,7 @@ export default function DashboardPage() {
                       className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${c.chip}`}>
                       {summaryLoading ? "—" : `${count} files`}
                     </div>
-                  </a>
+                  </Link>
                 );
               })}
             </div>
@@ -310,11 +461,11 @@ export default function DashboardPage() {
                   </div>
                 ) : null}
 
-                <a
-                  href="/file-manager"
+                <Link
+                  to="/file-manager"
                   className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
                   View all
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -365,91 +516,123 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-brand-800 dark:bg-brand-950">
-              <div className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                {s.label}
+          {(isBranchManager ? branchManagerStats : superAdminStats).map(
+            (s) => (
+              <div
+                key={s.label}
+                className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-brand-800 dark:bg-brand-950">
+                <div className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  {s.label}
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  {loading ? "—" : s.value}
+                </div>
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {s.sub}
+                </div>
               </div>
-              <div className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                {loading ? "—" : s.value}
-              </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {s.sub}
-              </div>
-            </div>
-          ))}
+            ),
+          )}
         </div>
       )}
 
+      {!isRegularUser && isBranchManager && summaryError ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          {summaryError}
+        </div>
+      ) : null}
+
+      {!isRegularUser && isSuperAdmin && adminError ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          {adminError}
+        </div>
+      ) : null}
+
       {!isRegularUser && (
         <>
-          <div className="grid gap-4 xl:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1 dark:border-brand-800 dark:bg-brand-950">
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                File Types
-              </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Distribution by category
-              </div>
-              <div className="mt-4 space-y-4">
-                {fileTypes.map((t) => (
-                  <div key={t.label}>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="font-medium text-slate-700 dark:text-slate-200">
-                        {t.label}
-                      </div>
-                      <div className="text-slate-500 dark:text-slate-400">
-                        {t.pct}%
-                      </div>
-                    </div>
-                    <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-brand-900">
-                      <div
-                        className="h-2 rounded-full bg-brand-600 dark:bg-brand-400"
-                        style={{ width: `${t.pct}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-brand-800 dark:bg-brand-950">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    Recent Files
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Recently uploaded or modified files
-                  </div>
+          {isSuperAdmin ? (
+            <div className="grid gap-4 xl:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-1 dark:border-brand-800 dark:bg-brand-950">
+                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  File Types
                 </div>
-                <button className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
-                  View all
-                </button>
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Distribution by category
+                </div>
+                <div className="mt-4 space-y-4">
+                  {adminLoading ? (
+                    <div className="text-sm text-slate-500">Loading…</div>
+                  ) : (
+                    fileTypesFromCategories.map((t) => (
+                      <div key={t.label}>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="font-medium text-slate-700 dark:text-slate-200">
+                            {t.label}
+                          </div>
+                          <div className="text-slate-500 dark:text-slate-400">
+                            {t.pct}%
+                          </div>
+                        </div>
+                        <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-brand-900">
+                          <div
+                            className="h-2 rounded-full bg-brand-600 dark:bg-brand-400"
+                            style={{ width: `${t.pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
-                {recentFiles.map((f) => (
-                  <div
-                    key={f.name}
-                    className="flex items-center justify-between py-3">
-                    <div>
-                      <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {f.name}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {f.sub}
-                      </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 xl:col-span-2 dark:border-brand-800 dark:bg-brand-950">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      Recent Files
                     </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-300">
-                      {f.size}
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Recently uploaded or modified files
                     </div>
                   </div>
-                ))}
+                  <Link
+                    to="/file-manager"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
+                    View all
+                  </Link>
+                </div>
+                <div className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+                  {adminLoading ? (
+                    <div className="py-6 text-center text-sm text-slate-500">
+                      Loading…
+                    </div>
+                  ) : !adminData?.recent.length ? (
+                    <div className="py-6 text-center text-sm text-slate-500">
+                      No recent files.
+                    </div>
+                  ) : (
+                    adminData.recent.map((f) => (
+                      <div
+                        key={`${f.file_path}-${f.created_at}`}
+                        className="flex items-center justify-between gap-4 py-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {f.file_name}
+                          </div>
+                          <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+                            {f.branch_name}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-sm text-slate-600 dark:text-slate-300">
+                          {fmtSize(f.file_size)}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="grid gap-4 xl:grid-cols-3">
             {isBranchManager ? (
@@ -461,8 +644,8 @@ export default function DashboardPage() {
                   Quick actions for {branchLabel}
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <a
-                    href="/file-manager"
+                  <Link
+                    to="/file-manager"
                     className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-brand-800 dark:bg-brand-950 dark:hover:bg-slate-900/60">
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       Manage Files
@@ -470,9 +653,9 @@ export default function DashboardPage() {
                     <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       Browse folders and upload documents
                     </div>
-                  </a>
-                  <a
-                    href="/shared-files"
+                  </Link>
+                  <Link
+                    to="/shared-files"
                     className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-brand-800 dark:bg-brand-950 dark:hover:bg-slate-900/60">
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       Shared Files
@@ -480,9 +663,9 @@ export default function DashboardPage() {
                     <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       Open files shared with you
                     </div>
-                  </a>
-                  <a
-                    href="/users"
+                  </Link>
+                  <Link
+                    to="/users"
                     className="rounded-2xl border border-slate-200 bg-white p-4 text-left hover:bg-slate-50 dark:border-brand-800 dark:bg-brand-950 dark:hover:bg-slate-900/60">
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       Users
@@ -490,7 +673,7 @@ export default function DashboardPage() {
                     <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       Add and manage your branch users
                     </div>
-                  </a>
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -502,24 +685,32 @@ export default function DashboardPage() {
                   Storage usage by branch
                 </div>
                 <div className="mt-4 space-y-4">
-                  {branchStorage.map((b) => (
-                    <div key={b.name}>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="font-medium text-slate-700 dark:text-slate-200">
-                          {b.name}
-                        </div>
-                        <div className="text-slate-500 dark:text-slate-400">
-                          {b.used}
-                        </div>
-                      </div>
-                      <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-brand-900">
-                        <div
-                          className="h-2 rounded-full bg-brand-600 dark:bg-brand-400"
-                          style={{ width: `${b.pct}%` }}
-                        />
-                      </div>
+                  {adminLoading ? (
+                    <div className="text-sm text-slate-500">Loading…</div>
+                  ) : branchStorageBars.length === 0 ? (
+                    <div className="text-sm text-slate-500">
+                      No branch data yet.
                     </div>
-                  ))}
+                  ) : (
+                    branchStorageBars.map((b) => (
+                      <div key={b.name}>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="font-medium text-slate-700 dark:text-slate-200">
+                            {b.name}
+                          </div>
+                          <div className="text-slate-500 dark:text-slate-400">
+                            {b.used}
+                          </div>
+                        </div>
+                        <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-brand-900">
+                          <div
+                            className="h-2 rounded-full bg-brand-600 dark:bg-brand-400"
+                            style={{ width: `${b.pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -529,24 +720,54 @@ export default function DashboardPage() {
                 Activity Log
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Recent system activity
+                {isBranchManager
+                  ? "Recent uploads in your branch"
+                  : "Recent system activity"}
               </div>
               <div className="mt-4 max-h-72 space-y-3 overflow-auto pr-1">
-                {activity.map((a, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 dark:border-brand-800 dark:bg-slate-900">
-                    <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {a.who}
+                {isBranchManager ? (
+                  summaryLoading ? (
+                    <div className="text-sm text-slate-500">Loading…</div>
+                  ) : branchActivityFromRecent.length === 0 ? (
+                    <div className="text-sm text-slate-500">No activity yet.</div>
+                  ) : (
+                    branchActivityFromRecent.map((a, idx) => (
+                      <div
+                        key={`${a.who}-${idx}-${a.when}`}
+                        className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 dark:border-brand-800 dark:bg-slate-900">
+                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {a.who}
+                        </div>
+                        <div className="text-xs text-slate-600 dark:text-slate-300">
+                          {a.what}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {a.when}
+                        </div>
+                      </div>
+                    ))
+                  )
+                ) : adminLoading ? (
+                  <div className="text-sm text-slate-500">Loading…</div>
+                ) : !adminData?.activity.length ? (
+                  <div className="text-sm text-slate-500">No activity yet.</div>
+                ) : (
+                  adminData.activity.map((a, idx) => (
+                    <div
+                      key={`${a.user_name}-${idx}-${a.created_at}`}
+                      className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 dark:border-brand-800 dark:bg-slate-900">
+                      <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {a.user_name}
+                      </div>
+                      <div className="text-xs text-slate-600 dark:text-slate-300">
+                        {a.description}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {formatRelativeTime(a.created_at)}
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-300">
-                      {a.what}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {a.when}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>

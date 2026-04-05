@@ -149,7 +149,7 @@ export default function AppShell() {
           </div>
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
-              File Manager
+              SAXCCU FMS
             </div>
             <div className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-white/50">
               Enterprise

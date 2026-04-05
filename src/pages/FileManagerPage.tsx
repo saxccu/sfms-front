@@ -19,6 +19,8 @@ type RootFolderOut = {
   branch_id: number;
   name: string;
   relative_path: string;
+  size?: number;
+  modified_at?: string | null;
 };
 
 type FolderEntryOut = {
@@ -28,6 +30,7 @@ type FolderEntryOut = {
   size?: number | null;
   file_type?: string | null;
   member_id?: string | null;
+  modified_at?: string | null;
 };
 
 type FolderHasFilesOut = {
@@ -56,6 +59,35 @@ type UserSearchOut = {
   branch_id: number;
   branch_name: string;
 };
+
+/** Human-readable size (B, KB, MB, GB, TB). */
+function formatByteSize(bytes: number | null | undefined): string {
+  if (bytes == null || !Number.isFinite(bytes)) return "—";
+  if (bytes < 0) return "—";
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let v = bytes;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  const decimals = i === 0 ? 0 : v >= 100 ? 0 : v >= 10 ? 1 : 2;
+  return `${v.toFixed(decimals)} ${units[i]}`;
+}
+
+function formatEntryModified(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function FileManagerPage() {
   usePageTitle("File Manager");
@@ -1358,12 +1390,10 @@ export default function FileManagerPage() {
                             {e.entry_type === "folder" ? "Folder" : "File"}
                           </td>
                           <td className="sfms-td text-slate-700 dark:text-slate-300">
-                            {e.entry_type === "file"
-                              ? String(e.size ?? "—")
-                              : "—"}
+                            {formatByteSize(e.size)}
                           </td>
                           <td className="sfms-td text-slate-700 dark:text-slate-300">
-                            —
+                            {formatEntryModified(e.modified_at)}
                           </td>
                           <td className="sfms-td text-right">
                             <ActionDropdown
@@ -1473,10 +1503,10 @@ export default function FileManagerPage() {
                           Folder
                         </td>
                         <td className="sfms-td text-slate-700 dark:text-slate-300">
-                          —
+                          {formatByteSize(f.size)}
                         </td>
                         <td className="sfms-td text-slate-700 dark:text-slate-300">
-                          —
+                          {formatEntryModified(f.modified_at)}
                         </td>
                         <td className="sfms-td text-right">
                           <ActionDropdown
@@ -1594,9 +1624,10 @@ export default function FileManagerPage() {
                             </div>
                             <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                               {e.entry_type === "folder" ? "Folder" : "File"}
-                              {e.entry_type === "file"
-                                ? ` · ${String(e.size ?? "—")}`
-                                : ""}
+                              {" · "}
+                              {formatByteSize(e.size)}
+                              {" · "}
+                              {formatEntryModified(e.modified_at)}
                             </div>
                           </div>
                         </div>
@@ -1706,7 +1737,8 @@ export default function FileManagerPage() {
                             {f.name}
                           </div>
                           <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                            Folder
+                            Folder · {formatByteSize(f.size)} ·{" "}
+                            {formatEntryModified(f.modified_at)}
                           </div>
                         </div>
                       </div>
