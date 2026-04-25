@@ -22,6 +22,8 @@ type DashboardSummaryResponse = {
   recent: DashboardRecent[];
   total_files?: number;
   total_storage_bytes?: number;
+  total_storage_capacity_bytes?: number;
+  branch_storage_capacity_bytes?: number;
   uploads_last_24h?: number;
 };
 
@@ -30,6 +32,8 @@ type AdminRecent = DashboardRecent & { branch_name: string };
 type AdminDashboardResponse = {
   total_files: number;
   total_storage_bytes: number;
+  total_storage_capacity_bytes: number;
+  branch_storage_capacity_bytes: number;
   branch_count: number;
   uploads_last_24h: number;
   categories: DashboardCategory[];
@@ -38,12 +42,20 @@ type AdminDashboardResponse = {
     branch_id: number;
     branch_name: string;
     bytes_used: number;
+    capacity_bytes: number;
   }>;
   activity: Array<{
     user_name: string;
     description: string;
     created_at: string;
   }>;
+};
+
+type CapacityState = {
+  pct: number;
+  colorClass: string;
+  label: string;
+  hint: string;
 };
 
 function formatRelativeTime(iso: string): string {
@@ -63,6 +75,39 @@ function formatRelativeTime(iso: string): string {
   });
 }
 
+function getCapacityState(pct: number): CapacityState {
+  if (pct >= 95) {
+    return {
+      pct,
+      colorClass: "bg-rose-600 dark:bg-rose-500",
+      label: "Near Full / Full",
+      hint: "Storage full - delete or upgrade",
+    };
+  }
+  if (pct >= 85) {
+    return {
+      pct,
+      colorClass: "bg-orange-500 dark:bg-orange-400",
+      label: "Critical",
+      hint: "Almost full",
+    };
+  }
+  if (pct >= 70) {
+    return {
+      pct,
+      colorClass: "bg-amber-500 dark:bg-amber-400",
+      label: "Warning Zone",
+      hint: "Storage filling up",
+    };
+  }
+  return {
+    pct,
+    colorClass: "bg-brand-600 dark:bg-brand-400",
+    label: "Healthy",
+    hint: "Normal usage",
+  };
+}
+
 export default function DashboardPage() {
   usePageTitle("Dashboard");
   const { user, loading, error } = useAuth();
@@ -80,6 +125,8 @@ export default function DashboardPage() {
   const [recent, setRecent] = useState<DashboardRecent[]>([]);
   const [totalFiles, setTotalFiles] = useState(0);
   const [totalStorageBytes, setTotalStorageBytes] = useState(0);
+  const [branchStorageCapacityBytes, setBranchStorageCapacityBytes] =
+    useState(0);
   const [uploadsLast24h, setUploadsLast24h] = useState(0);
 
   const [sharedWithMeCount, setSharedWithMeCount] = useState<number | null>(
@@ -119,6 +166,7 @@ export default function DashboardPage() {
           setRecent(res.recent);
           setTotalFiles(res.total_files ?? 0);
           setTotalStorageBytes(res.total_storage_bytes ?? 0);
+          setBranchStorageCapacityBytes(res.branch_storage_capacity_bytes ?? 0);
           setUploadsLast24h(res.uploads_last_24h ?? 0);
         }
       } catch (err) {
@@ -267,16 +315,32 @@ export default function DashboardPage() {
     }));
   }, [adminData?.categories]);
 
+  const globalCapacityState = useMemo(() => {
+    const used = adminData?.total_storage_bytes ?? 0;
+    const cap = Math.max(adminData?.total_storage_capacity_bytes ?? 0, 1);
+    const pct = Math.max(
+      0,
+      Math.min(100, Math.round((used / cap) * 100)),
+    );
+    return getCapacityState(pct);
+  }, [adminData?.total_storage_bytes, adminData?.total_storage_capacity_bytes]);
+
   const branchStorageBars = useMemo(() => {
     if (!adminData?.branch_storage?.length) return [];
-    const max = Math.max(
-      ...adminData.branch_storage.map((b) => b.bytes_used),
-      1,
-    );
     return adminData.branch_storage.map((b) => ({
       name: b.branch_name,
       used: fmtSize(b.bytes_used),
-      pct: Math.round((b.bytes_used / max) * 100),
+      capacity: fmtSize(b.capacity_bytes),
+      pct: Math.max(
+        0,
+        Math.min(100, Math.round((b.bytes_used / Math.max(b.capacity_bytes, 1)) * 100)),
+      ),
+      state: getCapacityState(
+        Math.max(
+          0,
+          Math.min(100, Math.round((b.bytes_used / Math.max(b.capacity_bytes, 1)) * 100)),
+        ),
+      ),
     }));
   }, [adminData?.branch_storage]);
 
@@ -289,8 +353,14 @@ export default function DashboardPage() {
       },
       {
         label: "My Branch Storage",
-        value: summaryLoading ? "—" : fmtSize(totalStorageBytes),
-        sub: `Storage used in ${branchLabel}`,
+        value:
+          summaryLoading || branchStorageCapacityBytes <= 0
+            ? "—"
+            : `${fmtSize(totalStorageBytes)} / ${fmtSize(branchStorageCapacityBytes)}`,
+        sub:
+          branchStorageCapacityBytes > 0
+            ? `${Math.min(100, Math.round((totalStorageBytes / Math.max(branchStorageCapacityBytes, 1)) * 100))}% used in ${branchLabel}`
+            : `Storage used in ${branchLabel}`,
       },
       {
         label: "Shared With Me",
@@ -309,6 +379,7 @@ export default function DashboardPage() {
       summaryLoading,
       totalFiles,
       totalStorageBytes,
+      branchStorageCapacityBytes,
       uploadsLast24h,
     ],
   );
@@ -559,6 +630,34 @@ export default function DashboardPage() {
                 <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Distribution by category
                 </div>
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-brand-800 dark:bg-brand-900/40">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-600 dark:text-slate-300">
+                      Capacity Status
+                    </span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">
+                      {adminLoading || !adminData
+                        ? "—"
+                        : `${fmtSize(adminData.total_storage_bytes)} / ${fmtSize(adminData.total_storage_capacity_bytes)}`}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 w-full rounded-full bg-slate-200 dark:bg-brand-900">
+                    <div
+                      className={`h-2 rounded-full transition-colors ${globalCapacityState.colorClass}`}
+                      style={{ width: `${adminLoading || !adminData ? 0 : globalCapacityState.pct}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">
+                      {adminLoading || !adminData
+                        ? "Loading…"
+                        : `${globalCapacityState.label} (${globalCapacityState.pct}%)`}
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                      {adminLoading || !adminData ? "" : globalCapacityState.hint}
+                    </span>
+                  </div>
+                </div>
                 <div className="mt-4 space-y-4">
                   {adminLoading ? (
                     <div className="text-sm text-slate-500">Loading…</div>
@@ -682,7 +781,10 @@ export default function DashboardPage() {
                   Branch Storage
                 </div>
                 <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Storage usage by branch
+                  Storage usage by branch (used vs total capacity)
+                </div>
+                <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  Percentages reflect capacity utilization, not distribution across branches.
                 </div>
                 <div className="mt-4 space-y-4">
                   {adminLoading ? (
@@ -699,18 +801,24 @@ export default function DashboardPage() {
                             {b.name}
                           </div>
                           <div className="text-slate-500 dark:text-slate-400">
-                            {b.used}
+                            {b.used} / {b.capacity} ({b.pct}%)
                           </div>
                         </div>
                         <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-brand-900">
                           <div
-                            className="h-2 rounded-full bg-brand-600 dark:bg-brand-400"
+                            className={`h-2 rounded-full ${b.state.colorClass}`}
                             style={{ width: `${b.pct}%` }}
                           />
+                        </div>
+                        <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                          {b.state.label} - {b.state.hint}
                         </div>
                       </div>
                     ))
                   )}
+                </div>
+                <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
+                  Predictive hint coming soon (e.g., full in ~5 days).
                 </div>
               </div>
             )}
