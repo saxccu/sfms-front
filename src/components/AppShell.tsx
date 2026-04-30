@@ -3,6 +3,7 @@ import type { ComponentType, SVGProps } from "react";
 
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
+  Bars3Icon,
   CalendarDaysIcon,
   ChartBarSquareIcon,
   Cog6ToothIcon,
@@ -11,6 +12,7 @@ import {
   MapPinIcon,
   Squares2X2Icon,
   UsersIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
 import ActionDropdown, { type ActionDropdownItem } from "./ActionDropdown";
@@ -77,6 +79,7 @@ export default function AppShell() {
   const { user } = useAuth();
   const [branchName, setBranchName] = useState<string | null>(null);
   const [theme, setThemeState] = useState<ThemeMode>(() => getEffectiveTheme());
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const pageTitle = useMemo(() => headerTitle(pathname), [pathname]);
 
@@ -133,6 +136,20 @@ export default function AppShell() {
     };
   }, [user?.branch_id]);
 
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    function onResize() {
+      if (window.innerWidth >= 768) {
+        setMobileNavOpen(false);
+      }
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   function toggleTheme() {
     const next: ThemeMode = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -141,8 +158,21 @@ export default function AppShell() {
 
   return (
     <div className="flex h-full min-h-screen bg-slate-100/90 dark:bg-brand-950">
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setMobileNavOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-900/45 md:hidden"
+        />
+      ) : null}
+
       <aside
-        className="relative z-20 flex w-64 shrink-0 flex-col border-r border-slate-200/90 bg-white shadow-[4px_0_32px_-12px_rgba(15,23,42,0.14)] dark:border-brand-800 dark:bg-[linear-gradient(180deg,#0f1419_0%,#0b0f14_100%)] dark:shadow-[4px_0_40px_-16px_rgba(0,0,0,0.55)]">
+        className={[
+          "fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] shrink-0 flex-col border-r border-slate-200/90 bg-white shadow-[4px_0_32px_-12px_rgba(15,23,42,0.14)] transition-transform duration-200 ease-out md:relative md:z-20 md:w-64 md:max-w-none md:translate-x-0",
+          "dark:border-brand-800 dark:bg-[linear-gradient(180deg,#0f1419_0%,#0b0f14_100%)] dark:shadow-[4px_0_40px_-16px_rgba(0,0,0,0.55)]",
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        ].join(" ")}>
         <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-5 dark:border-brand-800/80">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md shadow-brand-900/20 ring-1 ring-white/20 dark:from-brand-500 dark:to-brand-800 dark:shadow-black/40">
             <Squares2X2Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
@@ -157,7 +187,7 @@ export default function AppShell() {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 pb-8">
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/35">
             Menu
           </p>
@@ -207,15 +237,28 @@ export default function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 border-b border-slate-200/90 bg-white/85 px-6 py-4 backdrop-blur-md dark:border-brand-700 dark:bg-brand-900/80">
+        <header className="sticky top-0 z-10 border-b border-slate-200/90 bg-white/85 px-3 py-3 backdrop-blur-md sm:px-4 md:px-6 md:py-4 dark:border-brand-700 dark:bg-brand-900/80">
           <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
+            <div className="flex min-w-0 items-start gap-3">
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen((v) => !v)}
+                aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-100 md:hidden dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
+                {mobileNavOpen ? (
+                  <XMarkIcon className="h-5 w-5" aria-hidden />
+                ) : (
+                  <Bars3Icon className="h-5 w-5" aria-hidden />
+                )}
+              </button>
+              <div className="min-w-0">
               <div className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
                 {pageTitle}
               </div>
-              <div className="mt-0.5 text-sm text-slate-600 dark:text-white/75">
+              <div className="mt-0.5 hidden text-sm text-slate-600 dark:text-white/75 sm:block">
                 {user ? `Welcome back, ${user.name}.` : "Loading user…"}
               </div>
+            </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
@@ -282,7 +325,7 @@ export default function AppShell() {
           </div>
         </header>
 
-        <main className="relative flex-1 overflow-auto px-6 py-8 [background-image:radial-gradient(at_0%_0%,rgba(13,148,136,0.07),transparent_50%),linear-gradient(to_right,rgba(148,163,184,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.045)_1px,transparent_1px)] [background-size:auto,28px_28px,28px_28px] dark:[background-image:radial-gradient(at_0%_0%,rgba(20,184,166,0.08),transparent_45%),linear-gradient(to_right,rgba(148,163,184,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.04)_1px,transparent_1px)]">
+        <main className="relative flex-1 overflow-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8 [background-image:radial-gradient(at_0%_0%,rgba(13,148,136,0.07),transparent_50%),linear-gradient(to_right,rgba(148,163,184,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.045)_1px,transparent_1px)] [background-size:auto,28px_28px,28px_28px] dark:[background-image:radial-gradient(at_0%_0%,rgba(20,184,166,0.08),transparent_45%),linear-gradient(to_right,rgba(148,163,184,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.04)_1px,transparent_1px)]">
           <Outlet />
         </main>
       </div>

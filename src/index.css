@@ -16,11 +16,11 @@
 
 @layer components {
   .sfms-listing-card {
-    @apply border border-slate-200 bg-white dark:border-brand-800 dark:bg-brand-950;
+    @apply w-full border border-slate-200 bg-white dark:border-brand-800 dark:bg-brand-950;
   }
 
   .sfms-table {
-    @apply min-w-full border-collapse text-left text-sm;
+    @apply w-full min-w-full border-collapse text-left text-sm;
   }
 
   .sfms-thead {

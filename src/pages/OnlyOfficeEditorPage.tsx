@@ -124,27 +124,26 @@ export default function OnlyOfficeEditorPage() {
   const holderId = "onlyoffice-editor-holder";
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-sky-950 overflow-hidden">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-sky-950">
       {/* Mini Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-sky-900/50 backdrop-blur-md border-b border-white/10">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-sky-900/50 px-3 py-2.5 backdrop-blur-md sm:px-6 sm:py-3">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <Link
             to="/file-manager"
-            className="flex items-center gap-2 text-sky-200 hover:text-white transition-colors text-sm font-semibold group"
-          >
+            className="group inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-sky-200 transition-colors hover:text-white">
             <ArrowLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Back to Files
           </Link>
-          <div className="h-4 w-px bg-white/10" />
-          <div className="flex items-center gap-2 text-white">
+          <div className="hidden h-4 w-px bg-white/10 sm:block" />
+          <div className="flex min-w-0 items-center gap-2 text-white">
             <CloudIcon className="h-5 w-5 text-primary-400" />
-            <span className="text-sm font-bold truncate max-w-[200px] sm:max-w-md">
-              {filePath.split('/').pop() || "Document Editor"}
+            <span className="max-w-[140px] truncate text-sm font-bold sm:max-w-md">
+              {filePath.split("/").pop() || "Document Editor"}
             </span>
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-sky-400">
+        <div className="hidden items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-sky-400 sm:flex">
           <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
           Live Collaboration
         </div>
@@ -174,8 +173,8 @@ export default function OnlyOfficeEditorPage() {
       </div>
 
       {docServerUrl && (
-        <div className="px-6 py-1.5 bg-sky-900/80 text-[10px] text-sky-400 font-medium flex justify-between">
-          <span>{docServerUrl}</span>
+        <div className="flex items-center justify-between gap-2 bg-sky-900/80 px-3 py-1.5 text-[10px] font-medium text-sky-400 sm:px-6">
+          <span className="truncate">{docServerUrl}</span>
           <span>OnlyOffice Enterprise Edition</span>
         </div>
       )}

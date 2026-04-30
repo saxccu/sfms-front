@@ -523,8 +523,8 @@ export default function UsersPage() {
       </div>
 
       <div className="sfms-listing-card rounded-md">
-        <div className="overflow-auto">
-          <table className="sfms-table text-[11px]">
+        <div className="w-full overflow-x-auto">
+          <table className="sfms-table min-w-[760px] text-[11px]">
             <thead className="sfms-thead">
               <tr>
                 <th className="sfms-th !px-2 !py-1.5">User</th>
@@ -652,7 +652,7 @@ export default function UsersPage() {
             {filtered.length}
           </div>
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}

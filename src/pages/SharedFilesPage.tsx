@@ -81,14 +81,11 @@ export default function SharedFilesPage() {
   }, [q, rows]);
 
   async function viewFile(row: SharedWithMeOut) {
-    const blob = await apiFetchBlob(
-      `/files/content?file_path=${encodeURIComponent(row.file_path)}`,
-      { method: "GET" },
-      { auth: true },
+    window.open(
+      `/editor?file_path=${encodeURIComponent(row.file_path)}`,
+      "_blank",
+      "noopener,noreferrer",
     );
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank", "noopener,noreferrer");
-    setTimeout(() => URL.revokeObjectURL(url), 30_000);
   }
 
   async function downloadFile(row: SharedWithMeOut) {
@@ -173,8 +170,8 @@ export default function SharedFilesPage() {
       </div>
 
       <div className="sfms-listing-card rounded-md">
-        <div className="overflow-auto">
-          <table className="sfms-table">
+        <div className="w-full overflow-x-auto">
+          <table className="sfms-table min-w-[860px]">
             <thead className="sfms-thead">
               <tr>
                 <th className="sfms-th">S/N</th>

@@ -1342,8 +1342,8 @@ export default function FileManagerPage() {
       </div>
       {viewMode === "list" ? (
         <div className="sfms-listing-card rounded-md">
-          <div className="overflow-auto">
-            <table className="sfms-table">
+          <div className="w-full overflow-x-auto">
+            <table className="sfms-table min-w-[760px]">
               <thead className="sfms-thead">
                 <tr>
                   <th className="sfms-th">Name</th>
