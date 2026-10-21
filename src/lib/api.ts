@@ -1,13 +1,30 @@
 import { clearAccessToken, getAccessToken } from "./storage";
 
-const defaultHost =
-  typeof window !== "undefined" ? window.location.hostname : "localhost";
+/**
+ * Public API of the hosted deployment. Used as the fallback when the app
+ * runs on the hosted frontend (Netlify) and no VITE_API_BASE_URL is set.
+ */
+const PRODUCTION_API_URL = "https://saxccudrive.onrender.com";
 
-const configuredBaseUrl: string | undefined =
-  import.meta.env.VITE_API_BASE_URL;
+const configuredBaseUrl: string | undefined = import.meta.env.VITE_API_BASE_URL;
 
-export const API_BASE_URL =
-  configuredBaseUrl ?? `http://${defaultHost}:8000`;
+function resolveApiBaseUrl(): string {
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/, "");
+  }
+  if (typeof window === "undefined") {
+    return PRODUCTION_API_URL;
+  }
+  const host = window.location.hostname;
+  // The hosted frontend talks to the hosted API; a local dev server talks
+  // to the backend running on port 8000 of the same host.
+  if (host.endsWith(".netlify.app")) {
+    return PRODUCTION_API_URL;
+  }
+  return `http://${host}:8000`;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export class ApiError extends Error {
   status: number;
