@@ -4,11 +4,18 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { useWait } from "../context/WaitContext";
-import { ApiError } from "../lib/api";
+import { ApiError, apiErrorMessage } from "../lib/api";
 import { login } from "../lib/auth";
 import { setAccessToken } from "../lib/storage";
 
 import { usePageTitle } from "../hooks/usePageTitle";
+
+const SIGN_OUT_NOTICES: Record<string, string> = {
+  idle: "You have been signed out due to inactivity. Please sign in again.",
+  expired: "Your session has expired. Please sign in again.",
+  invalid_token: "Your session is no longer valid. Please sign in again.",
+  password_changed: "Your password was changed. Please sign in again.",
+};
 
 export default function LoginPage() {
   usePageTitle("Login");
@@ -24,15 +31,8 @@ export default function LoginPage() {
   useEffect(() => {
     try {
       const reason = localStorage.getItem("sfms_signout_reason");
-      if (reason === "idle") {
-        setNotice(
-          "You have been signed out due to inactivity. Please sign in again.",
-        );
-      }
-      if (reason === "password_changed") {
-        setNotice("Your password was changed. Please sign in again.");
-      }
       if (reason) {
+        setNotice(SIGN_OUT_NOTICES[reason] ?? SIGN_OUT_NOTICES.idle);
         localStorage.removeItem("sfms_signout_reason");
       }
     } catch {
@@ -44,6 +44,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setNotice(null);
     wait.start("Signing in…");
 
     try {
@@ -52,10 +53,10 @@ export default function LoginPage() {
       await refresh();
       navigate("/", { replace: true });
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(`${err.message}${err.bodyText ? ` - ${err.bodyText}` : ""}`);
+      if (err instanceof ApiError && err.status === 401) {
+        setError("Invalid username or password.");
       } else {
-        setError("Login failed");
+        setError(apiErrorMessage(err, "Login failed"));
       }
     } finally {
       wait.stop();
@@ -133,6 +134,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     type="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     required
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/15"
@@ -164,3 +166,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

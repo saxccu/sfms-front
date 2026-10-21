@@ -3,8 +3,11 @@ import { clearAccessToken, getAccessToken } from "./storage";
 const defaultHost =
   typeof window !== "undefined" ? window.location.hostname : "localhost";
 
+const configuredBaseUrl: string | undefined =
+  import.meta.env.VITE_API_BASE_URL;
+
 export const API_BASE_URL =
-  (import.meta as any).env?.VITE_API_BASE_URL ?? `http://${defaultHost}:8000`;
+  configuredBaseUrl ?? `http://${defaultHost}:8000`;
 
 export class ApiError extends Error {
   status: number;
@@ -17,6 +20,33 @@ export class ApiError extends Error {
   }
 }
 
+/** Extract the human readable `detail` field from a FastAPI error body. */
+export function extractDetail(bodyText: string): string | null {
+  if (!bodyText) return null;
+  try {
+    const parsed = JSON.parse(bodyText);
+    const detail = parsed?.detail;
+    if (typeof detail === "string") return detail;
+    // FastAPI validation errors: [{loc, msg, type}, ...]
+    if (Array.isArray(detail) && detail.length > 0 && detail[0]?.msg) {
+      return String(detail[0].msg);
+    }
+  } catch {
+    // Not JSON - fall through and use the raw text.
+    return bodyText.slice(0, 200);
+  }
+  return null;
+}
+
+/** Turn any thrown value into a message that is safe to show to the user. */
+export function apiErrorMessage(err: unknown, fallback = "Request failed"): string {
+  if (err instanceof ApiError) {
+    return extractDetail(err.bodyText) ?? err.message;
+  }
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
 type RequestOptions = {
   auth?: boolean;
   headers?: Record<string, string>;
@@ -24,17 +54,46 @@ type RequestOptions = {
 
 const SIGNOUT_REASON_KEY = "sfms_signout_reason";
 
-function handleUnauthorized(options: RequestOptions | undefined) {
+export type SignOutReason =
+  | "idle"
+  | "expired"
+  | "invalid_token"
+  | "password_changed";
+
+/**
+ * Work out why an authenticated request was rejected, so the login screen can
+ * explain it instead of always claiming an inactivity timeout.
+ */
+function resolveSignOutReason(bodyText: string): SignOutReason {
+  if (bodyText.includes("Session expired")) return "expired";
+  if (bodyText.includes("Invalid token") || bodyText.includes("User not found")) {
+    return "invalid_token";
+  }
+  if (bodyText.includes("Not authenticated")) return "expired";
+  return "idle";
+}
+
+function handleUnauthorized(
+  options: RequestOptions | undefined,
+  reason: SignOutReason = "idle",
+) {
+  // Only a request that actually carried a token can invalidate a session.
+  // A 401 from a public endpoint (e.g. POST /auth/login with a wrong
+  // password) must not sign the user out and must not navigate away,
+  // otherwise the real error message is lost.
   if (!options?.auth) return;
+  clearAccessToken();
+  if (typeof window === "undefined" || window.location.pathname === "/login") {
+    // Already on the login screen - let the caller render the error inline
+    // instead of reloading the page (which would wipe it).
+    return;
+  }
   try {
-    localStorage.setItem(SIGNOUT_REASON_KEY, "idle");
+    localStorage.setItem(SIGNOUT_REASON_KEY, reason);
   } catch {
     // ignore
   }
-  clearAccessToken();
-  if (typeof window !== "undefined") {
-    window.location.href = "/login";
-  }
+  window.location.href = "/login";
 }
 
 export async function apiFetch<T>(
@@ -70,7 +129,7 @@ export async function apiFetch<T>(
   if (!res.ok) {
     const bodyText = await res.text().catch(() => "");
     if (res.status === 401) {
-      handleUnauthorized({ auth: true });
+      handleUnauthorized(options, resolveSignOutReason(bodyText));
     }
     throw new ApiError(`Request failed: ${res.status}`, res.status, bodyText);
   }
@@ -110,7 +169,7 @@ export async function apiFetchForm<T>(
   if (!res.ok) {
     const bodyText = await res.text().catch(() => "");
     if (res.status === 401) {
-      handleUnauthorized({ auth: true });
+      handleUnauthorized({ auth: true }, resolveSignOutReason(bodyText));
     }
     throw new ApiError(`Request failed: ${res.status}`, res.status, bodyText);
   }
@@ -151,7 +210,7 @@ export async function apiFetchBlob(
   if (!res.ok) {
     const bodyText = await res.text().catch(() => "");
     if (res.status === 401) {
-      handleUnauthorized(options);
+      handleUnauthorized(options, resolveSignOutReason(bodyText));
     }
     throw new ApiError(`Request failed: ${res.status}`, res.status, bodyText);
   }

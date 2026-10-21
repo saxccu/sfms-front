@@ -9,6 +9,16 @@ export default defineConfig({
     // (localhost/127.0.0.1/LAN-IP on 3000, 4000, 5173) always matches.
     port: 4000,
     strictPort: true,
+    watch: {
+      // Wait until a file has stopped changing before re-reading it.
+      // Without this the dev server can read a half-written module, cache
+      // the truncated transform and keep serving stale code until the next
+      // edit (or a manual `touch`).
+      awaitWriteFinish: {
+        stabilityThreshold: 200,
+        pollInterval: 50,
+      },
+    },
   },
   preview: {
     port: 4000,

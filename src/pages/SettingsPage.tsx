@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Cog6ToothIcon, KeyIcon } from "@heroicons/react/24/outline";
 
 import { useAuth } from "../context/AuthContext";
-import { ApiError, apiFetch } from "../lib/api";
+import { ApiError, apiErrorMessage, apiFetch } from "../lib/api";
 import { clearAccessToken } from "../lib/storage";
 import { usePageTitle } from "../hooks/usePageTitle";
 
@@ -88,7 +88,7 @@ function PasswordCard() {
       }, 1200);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(`${err.message}${err.bodyText ? ` - ${err.bodyText}` : ""}`);
+        setError(apiErrorMessage(err));
       } else {
         setError("Failed to change the password");
       }
