@@ -29,6 +29,9 @@ export default function LoginPage() {
           "You have been signed out due to inactivity. Please sign in again.",
         );
       }
+      if (reason === "password_changed") {
+        setNotice("Your password was changed. Please sign in again.");
+      }
       if (reason) {
         localStorage.removeItem("sfms_signout_reason");
       }

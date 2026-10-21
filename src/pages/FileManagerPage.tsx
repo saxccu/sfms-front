@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "../context/AuthContext";
 import { useWait } from "../context/WaitContext";
-import { ApiError, apiFetch, apiFetchBlob, apiFetchForm } from "../lib/api";
+import { ApiError, API_BASE_URL, apiFetch, apiFetchBlob, apiFetchForm } from "../lib/api";
 import ActionDropdown, {
   type ActionDropdownItem,
 } from "../components/ActionDropdown";
@@ -634,7 +634,7 @@ export default function FileManagerPage() {
         { auth: true },
       );
 
-      const fullUrl = `${(import.meta as any).env?.VITE_API_BASE_URL ?? "http://127.0.0.1:8000"}${res.url}`;
+      const fullUrl = `${API_BASE_URL}${res.url}`;
       setShareLink(fullUrl);
     } catch (err) {
       if (err instanceof ApiError) {
