@@ -69,7 +69,7 @@ export default function LoginPage() {
       <div className="grid h-full grid-cols-1 lg:grid-cols-[1.2fr_0.8fr]">
         <div
           className="relative hidden bg-cover bg-center lg:block"
-          style={{ backgroundImage: "url('/login-hero.jpg.jpg')" }}>
+          style={{ backgroundImage: "url('/login-hero.jpg')" }}>
           <div className="absolute inset-0 bg-brand-950/45" />
           <div className="absolute inset-0 opacity-50 [background:radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.18),transparent_55%),radial-gradient(circle_at_70%_65%,rgba(255,255,255,0.12),transparent_55%)]" />
 

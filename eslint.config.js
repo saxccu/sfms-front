@@ -20,4 +20,12 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Providers and their hooks live together on purpose; Fast Refresh is not
+    // needed for these two files.
+    files: ['src/context/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

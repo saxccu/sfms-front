@@ -137,10 +137,6 @@ export default function AppShell() {
   }, [user?.branch_id]);
 
   useEffect(() => {
-    setMobileNavOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     function onResize() {
       if (window.innerWidth >= 768) {
         setMobileNavOpen(false);
@@ -207,6 +203,7 @@ export default function AppShell() {
                   key={item.to}
                   to={item.to}
                   end={item.end}
+                  onClick={() => setMobileNavOpen(false)}
                   className={({ isActive }) =>
                     [
                       "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150",

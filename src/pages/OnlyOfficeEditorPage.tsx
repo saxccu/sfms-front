@@ -13,16 +13,25 @@ function useQueryParam(name: string): string {
   }, [name, search]);
 }
 
+/** The subset of the OnlyOffice DocsAPI surface this page actually uses. */
+type DocEditorInstance = {
+  destroyEditor?: () => void;
+};
+
+type DocsApi = {
+  DocEditor: new (elementId: string, config: unknown) => DocEditorInstance;
+};
+
 type OnlyOfficeConfigOut = {
   docserver_url: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 };
 
 export default function OnlyOfficeEditorPage() {
   usePageTitle("OnlyOffice");
   const filePath = useQueryParam("file_path");
   const holderRef = useRef<HTMLDivElement | null>(null);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<DocEditorInstance | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +95,7 @@ export default function OnlyOfficeEditorPage() {
         }
         editorRef.current = null;
 
-        const DocsAPI = (window as any).DocsAPI;
+        const DocsAPI = (window as unknown as { DocsAPI?: DocsApi }).DocsAPI;
         if (!DocsAPI?.DocEditor) {
           throw new Error("OnlyOffice DocsAPI not available");
         }

@@ -11,45 +11,37 @@ lerna-debug.log*
 node_modules/
 jspm_packages/
 
-# Distribution/Build directories
+# Build output (produced by Netlify and local builds)
 dist/
 build/
 out/
 es/
-.next/ # For Next.js projects
-.vite/ # For Vite projects
-.parcel-cache/ # For Parcel projects
+.next/
+.vite/
+.parcel-cache/
 
-# Optional npm cache directory
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# Caches
 .npm
-
-# Optional eslint cache
 .eslintcache
-
-# Optional REPL history
 .node_repl_history
-
-# Output of 'npm pack'
 *.tgz
-
-# Yarn Integrity file
 .yarn-integrity
 
-# Editor-specific files (optional, can be in a global gitignore)
-.idea/ # WebStorm/IntelliJ
-.vscode/ # VS Code
+# Editors and OS files
+.idea/
+.vscode/
 *.iml
 .project
 .classpath
 .c9/
 *.swp*
-.DS_Store # macOS specific
-Thumbs.db # Windows specific
+.DS_Store
+Thumbs.db
 
-# Environment variables
+# Environment files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.*.local
+.env.*
+!.env.example
