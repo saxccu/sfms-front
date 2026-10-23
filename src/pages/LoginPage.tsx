@@ -54,7 +54,7 @@ export default function LoginPage() {
       navigate("/", { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Invalid username or password.");
+        setError("Invalid username/email or password.");
       } else {
         setError(apiErrorMessage(err, "Login failed"));
       }
@@ -112,25 +112,34 @@ export default function LoginPage() {
                 ) : null}
 
                 <div className="space-y-1.5">
-                  <label className="ml-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Username
+                  <label
+                    htmlFor="login-identifier"
+                    className="ml-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Username or Email
                   </label>
                   <input
+                    id="login-identifier"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     type="text"
                     autoComplete="username"
-                    placeholder="Enter your username"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder="Enter your username or email"
                     required
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/15"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="ml-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <label
+                    htmlFor="login-password"
+                    className="ml-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Password
                   </label>
                   <input
+                    id="login-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     type="password"
