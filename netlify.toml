@@ -1,0 +1,36 @@
+# Netlify build configuration for the SFMS frontend.
+#
+# The site is built from this repository: every push to `main` triggers a
+# deploy. `dist/` is gitignored and never committed.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Vite 5 needs Node 18+; pin a current LTS so builds are reproducible.
+  NODE_VERSION = "22"
+  # Optional: point the build at another API. If unset, `src/lib/api.ts`
+  # falls back to https://saxccudrive.onrender.com on *.netlify.app hosts.
+  # VITE_API_BASE_URL = "https://saxccudrive.onrender.com"
+
+# SPA fallback: client-side routes (/login, /settings, ...) must serve
+# index.html instead of Netlify's 404 page. `public/_redirects` carries the
+# same rule so a manual drag-and-drop deploy of `dist/` behaves identically.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Vite fingerprints asset filenames, so they can be cached indefinitely.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# index.html must always be revalidated: a stale copy would keep pointing at
+# asset filenames that no longer exist after a deploy.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

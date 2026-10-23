@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# SFMS Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite frontend for the Samartex Co-Operative Credit
+Union File Management System.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 22 (see `netlify.toml`; Vite 5 needs Node 18+)
+- The backend API running on `http://localhost:8000`
 
-## React Compiler
+## Local development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev        # http://localhost:4000
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The dev server is pinned to port **4000** with `strictPort: true`, because
+that origin is in the backend's CORS allowlist (`CORS_DEV_PORTS`).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## API base URL
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+`src/lib/api.ts` resolves the API root once at start-up:
+
+| Condition | Value |
+|---|---|
+| `VITE_API_BASE_URL` is set | that value (trailing slashes trimmed) |
+| Host ends with `.netlify.app` | `https://saxccudrive.onrender.com` |
+| Anything else | `http://<current host>:8000` |
+
+`VITE_API_BASE_URL` is a **build-time** variable: changing it requires a
+rebuild, not just a restart.
+
+## Build
+
+```bash
+npm run build      # tsc -b && vite build -> dist/
+npm run preview    # serve the production build locally
+npm run lint
+```
+
+## Deployment (Netlify)
+
+The site is built from this repository — every push to `main` triggers a
+deploy, so `dist/` is **not** committed. Netlify is configured entirely by
+`netlify.toml`:
+
+| Setting | Value |
+|---|---|
+| Build command | `npm run build` |
+| Publish directory | `dist` |
+| Node version | `22` |
+| Environment variable (optional) | `VITE_API_BASE_URL=https://saxccudrive.onrender.com` |
+
+### SPA fallback
+
+This is a single-page app, so every client-side route (`/login`, `/settings`,
+…) must serve `index.html` rather than Netlify's 404 page. The rewrite is
+defined in two places, on purpose:
+
+- `netlify.toml` → `[[redirects]]`, used when Netlify builds from this repo.
+- `public/_redirects` → copied into `dist/`, so a manual drag-and-drop
+  deployment of the built folder behaves the same way.
+
+Check a deployment with:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://saxccudrive.netlify.app/login   # 200, not 404
 ```
