@@ -16,7 +16,7 @@ type BranchOut = {
 };
 
 type RootFolderOut = {
-  branch_id: number;
+  branch_id: number | null;
   name: string;
   relative_path: string;
   size?: number;
@@ -49,14 +49,14 @@ type UserOut = {
   name: string;
   email: string;
   role: string;
-  branch_id: number;
+  branch_id: number | null;
 };
 
 type UserSearchOut = {
   id: number;
   name: string;
   email: string;
-  branch_id: number;
+  branch_id: number | null;
   branch_name: string;
 };
 
@@ -100,6 +100,7 @@ export default function FileManagerPage() {
   const [branches, setBranches] = useState<BranchOut[]>([]);
   const [branchId, setBranchId] = useState<number | null>(null);
   const [branchError, setBranchError] = useState<string | null>(null);
+  const [scope, setScope] = useState<"branch" | "public">("branch");
 
   const [rootFolders, setRootFolders] = useState<RootFolderOut[]>([]);
   const [rootFoldersLoading, setRootFoldersLoading] = useState(false);
@@ -169,18 +170,25 @@ export default function FileManagerPage() {
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
   const isBranchManager = user?.role === "BRANCH_MANAGER";
+  const isPublicScope = scope === "public";
+  const canManageHere = isPublicScope
+    ? isSuperAdmin
+    : isSuperAdmin || isBranchManager;
+  const canEditFilesHere = isPublicScope ? isSuperAdmin : true;
+  const canCopyCutHere = !isPublicScope;
   const userId = user?.id ?? null;
   const userBranchId = user?.branch_id ?? null;
 
   const branchName = useMemo(() => {
+    if (isPublicScope) return "Public";
     const b = branches.find((x) => x.id === branchId);
     return b?.name ?? "";
-  }, [branches, branchId]);
+  }, [branches, branchId, isPublicScope]);
 
   useEffect(() => {
     let cancelled = false;
     async function hydrateFolderHasFiles() {
-      if (!branchId) return;
+      if (!isPublicScope && !branchId) return;
 
       const paths = new Set<string>();
       for (const e of folderEntries) {
@@ -198,8 +206,14 @@ export default function FileManagerPage() {
       try {
         const results = await Promise.all(
           missing.map(async (p) => {
+            const params = new URLSearchParams({ relative_path: p });
+            if (isPublicScope) {
+              params.set("scope", "public");
+            } else {
+              params.set("branch_id", String(branchId));
+            }
             const res = await apiFetch<FolderHasFilesOut>(
-              `/files/folder-has-files?branch_id=${encodeURIComponent(String(branchId))}&relative_path=${encodeURIComponent(p)}`,
+              `/files/folder-has-files?${params.toString()}`,
               { method: "GET" },
               { auth: true },
             );
@@ -221,7 +235,7 @@ export default function FileManagerPage() {
     return () => {
       cancelled = true;
     };
-  }, [branchId, folderEntries, rootFolders, folderHasFilesByPath]);
+  }, [branchId, isPublicScope, folderEntries, rootFolders, folderHasFilesByPath]);
 
   useEffect(() => {
     let cancelled = false;
@@ -253,9 +267,8 @@ export default function FileManagerPage() {
           setBranchId(urlBranchId);
           return;
         }
-        if (res.length > 0 && branchId == null) {
-          setBranchId(res[0].id);
-        }
+        // Do not silently bind a branchless SUPER_ADMIN to the first branch.
+        // The branch must be chosen explicitly (or the Public tab used).
       } catch (err) {
         if (cancelled) return;
         if (err instanceof ApiError) {
@@ -292,17 +305,34 @@ export default function FileManagerPage() {
     );
   }
 
-  function buildFolderContentsUrl(
-    branchId: number,
-    relativePath: string,
-  ): string {
-    const params = new URLSearchParams({
-      branch_id: String(branchId),
-      relative_path: relativePath,
-    });
+  function applyScopeParams(params: URLSearchParams): URLSearchParams {
+    if (isPublicScope) {
+      params.set("scope", "public");
+    } else if (branchId) {
+      params.set("branch_id", String(branchId));
+    }
+    return params;
+  }
+
+  function buildRootFoldersUrl(): string {
+    const params = applyScopeParams(new URLSearchParams());
+    return `/files/root-folders?${params.toString()}`;
+  }
+
+  function buildFolderContentsUrl(relativePath: string): string {
+    const params = applyScopeParams(
+      new URLSearchParams({ relative_path: relativePath }),
+    );
     if (fromDate.trim()) params.set("from_date", fromDate.trim());
     if (toDate.trim()) params.set("to_date", toDate.trim());
     return `/files/folder-contents?${params.toString()}`;
+  }
+
+  function buildDeleteFolderUrl(relativePath: string): string {
+    const params = applyScopeParams(
+      new URLSearchParams({ relative_path: relativePath }),
+    );
+    return `/files/folder?${params.toString()}`;
   }
 
   function copyEntry(entry: FolderEntryOut) {
@@ -352,16 +382,16 @@ export default function FileManagerPage() {
 
       if (clipboard.operation === "move") setClipboard(null);
 
-      if (branchId && currentFolder) {
+      if ((isPublicScope || branchId) && currentFolder) {
         const refreshed = await apiFetch<FolderEntryOut[]>(
-          buildFolderContentsUrl(branchId, currentFolder.relative_path),
+          buildFolderContentsUrl(currentFolder.relative_path),
           { method: "GET" },
           { auth: true },
         );
         setFolderEntries(refreshed);
-      } else if (branchId) {
+      } else if (isPublicScope || branchId) {
         const refreshed = await apiFetch<RootFolderOut[]>(
-          `/files/root-folders?branch_id=${encodeURIComponent(String(branchId))}`,
+          buildRootFoldersUrl(),
           { method: "GET" },
           { auth: true },
         );
@@ -424,7 +454,7 @@ export default function FileManagerPage() {
       return;
     }
 
-    if (!branchId) {
+    if (!isPublicScope && !branchId) {
       setCreateSubError("Select a branch first");
       return;
     }
@@ -434,11 +464,16 @@ export default function FileManagerPage() {
       return;
     }
 
+    if (isPublicScope && !isSuperAdmin) {
+      setCreateSubError("Only super admins can modify public folders");
+      return;
+    }
+
     setCreateSubLoading(true);
     setCreateSubError(null);
     try {
       await apiFetch<{
-        branch_id: number;
+        branch_id: number | null;
         name: string;
         relative_path: string;
       }>(
@@ -446,11 +481,19 @@ export default function FileManagerPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            branch_id: branchId,
-            parent_relative_path: currentFolder.relative_path,
-            name,
-          }),
+          body: JSON.stringify(
+            isPublicScope
+              ? {
+                  scope: "public",
+                  parent_relative_path: currentFolder.relative_path,
+                  name,
+                }
+              : {
+                  branch_id: branchId,
+                  parent_relative_path: currentFolder.relative_path,
+                  name,
+                },
+          ),
         },
         { auth: true },
       );
@@ -459,7 +502,7 @@ export default function FileManagerPage() {
       setNewSubFolderName("");
 
       const refreshed = await apiFetch<FolderEntryOut[]>(
-        buildFolderContentsUrl(branchId, currentFolder.relative_path),
+        buildFolderContentsUrl(currentFolder.relative_path),
         { method: "GET" },
         { auth: true },
       );
@@ -478,7 +521,7 @@ export default function FileManagerPage() {
   }
 
   async function deleteEntry(entry: FolderEntryOut) {
-    if (!(isSuperAdmin || isBranchManager)) return;
+    if (!canManageHere) return;
 
     const ok = window.confirm(
       `Delete ${entry.entry_type === "folder" ? "folder" : "file"} "${entry.name}"?`,
@@ -489,9 +532,9 @@ export default function FileManagerPage() {
     setNotice(null);
     try {
       if (entry.entry_type === "folder") {
-        if (!branchId) throw new Error("Missing branch");
+        if (!isPublicScope && !branchId) throw new Error("Missing branch");
         await apiFetch(
-          `/files/folder?branch_id=${encodeURIComponent(String(branchId))}&relative_path=${encodeURIComponent(entry.relative_path)}`,
+          buildDeleteFolderUrl(entry.relative_path),
           { method: "DELETE" },
           { auth: true },
         );
@@ -503,16 +546,16 @@ export default function FileManagerPage() {
         );
       }
 
-      if (branchId && currentFolder) {
+      if ((isPublicScope || branchId) && currentFolder) {
         const refreshed = await apiFetch<FolderEntryOut[]>(
-          buildFolderContentsUrl(branchId, currentFolder.relative_path),
+          buildFolderContentsUrl(currentFolder.relative_path),
           { method: "GET" },
           { auth: true },
         );
         setFolderEntries(refreshed);
-      } else if (branchId) {
+      } else if (isPublicScope || branchId) {
         const refreshed = await apiFetch<RootFolderOut[]>(
-          `/files/root-folders?branch_id=${encodeURIComponent(String(branchId))}`,
+          buildRootFoldersUrl(),
           { method: "GET" },
           { auth: true },
         );
@@ -591,9 +634,9 @@ export default function FileManagerPage() {
         { auth: true },
       );
 
-      if (branchId && currentFolder) {
+      if ((isPublicScope || branchId) && currentFolder) {
         const refreshed = await apiFetch<FolderEntryOut[]>(
-          buildFolderContentsUrl(branchId, currentFolder.relative_path),
+          buildFolderContentsUrl(currentFolder.relative_path),
           { method: "GET" },
           { auth: true },
         );
@@ -874,6 +917,11 @@ export default function FileManagerPage() {
       return;
     }
 
+    if (isPublicScope && !isSuperAdmin) {
+      setUploadError("Only super admins can upload to public folders");
+      return;
+    }
+
     let finalName = baseName;
     const original = uploadFile.name;
     const dotIdx = original.lastIndexOf(".");
@@ -903,10 +951,10 @@ export default function FileManagerPage() {
     try {
       await apiFetchForm("/files/upload", form);
 
-      if (branchId && currentFolder) {
+      if ((isPublicScope || branchId) && currentFolder) {
         try {
           const refreshed = await apiFetch<FolderEntryOut[]>(
-            buildFolderContentsUrl(branchId, currentFolder.relative_path),
+            buildFolderContentsUrl(currentFolder.relative_path),
             { method: "GET" },
             { auth: true },
           );
@@ -981,7 +1029,7 @@ export default function FileManagerPage() {
     let cancelled = false;
 
     async function loadRootFolders() {
-      if (!branchId) {
+      if (!isPublicScope && !branchId) {
         setRootFolders([]);
         setCurrentFolder(null);
         return;
@@ -991,7 +1039,7 @@ export default function FileManagerPage() {
       setRootFoldersError(null);
       try {
         const res = await apiFetch<RootFolderOut[]>(
-          `/files/root-folders?branch_id=${encodeURIComponent(String(branchId))}`,
+          buildRootFoldersUrl(),
           { method: "GET" },
           { auth: true },
         );
@@ -1017,13 +1065,13 @@ export default function FileManagerPage() {
     return () => {
       cancelled = true;
     };
-  }, [branchId]);
+  }, [branchId, isPublicScope]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadFolderEntries() {
-      if (!branchId) {
+      if (!isPublicScope && !branchId) {
         setFolderEntries([]);
         return;
       }
@@ -1037,7 +1085,7 @@ export default function FileManagerPage() {
       setFolderEntriesError(null);
       try {
         const res = await apiFetch<FolderEntryOut[]>(
-          buildFolderContentsUrl(branchId, currentFolder.relative_path),
+          buildFolderContentsUrl(currentFolder.relative_path),
           { method: "GET" },
           { auth: true },
         );
@@ -1061,7 +1109,7 @@ export default function FileManagerPage() {
     return () => {
       cancelled = true;
     };
-  }, [branchId, currentFolder?.relative_path, fromDate, toDate]);
+  }, [branchId, isPublicScope, currentFolder?.relative_path, fromDate, toDate]);
 
   function openFolder(folder: RootFolderOut) {
     setFolderEntriesError(null);
@@ -1072,6 +1120,18 @@ export default function FileManagerPage() {
     setFolderEntriesError(null);
     setCurrentFolder(null);
     setFolderEntries([]);
+  }
+
+  function switchScope(next: "branch" | "public") {
+    if (next === scope) return;
+    setScope(next);
+    setCurrentFolder(null);
+    setFolderEntries([]);
+    setRootFolders([]);
+    setFolderHasFilesByPath({});
+    setClipboard(null);
+    setFolderEntriesError(null);
+    setRootFoldersError(null);
   }
 
   function openCreateRootDialog() {
@@ -1103,8 +1163,13 @@ export default function FileManagerPage() {
       return;
     }
 
-    if (!branchId) {
+    if (!isPublicScope && !branchId) {
       setCreateRootError("Select a branch first");
+      return;
+    }
+
+    if (isPublicScope && !isSuperAdmin) {
+      setCreateRootError("Only super admins can create public folders");
       return;
     }
 
@@ -1112,7 +1177,7 @@ export default function FileManagerPage() {
     setCreateRootError(null);
     try {
       await apiFetch<{
-        branch_id: number;
+        branch_id: number | null;
         name: string;
         relative_path: string;
       }>(
@@ -1120,7 +1185,11 @@ export default function FileManagerPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ branch_id: branchId, name }),
+          body: JSON.stringify(
+            isPublicScope
+              ? { scope: "public", name }
+              : { branch_id: branchId, name },
+          ),
         },
         { auth: true },
       );
@@ -1128,7 +1197,7 @@ export default function FileManagerPage() {
       setCreateRootOpen(false);
       setNewRootFolderName("");
       const refreshed = await apiFetch<RootFolderOut[]>(
-        `/files/root-folders?branch_id=${encodeURIComponent(String(branchId))}`,
+        buildRootFoldersUrl(),
         { method: "GET" },
         { auth: true },
       );
@@ -1184,7 +1253,7 @@ export default function FileManagerPage() {
               <path d="M13 13h7v7h-7v-7z" />
             </svg>
           </button>
-          {isSuperAdmin || isBranchManager ? (
+          {canManageHere ? (
             <button
               onClick={openCreateRootDialog}
               disabled={isBranchManager && !!currentFolder}
@@ -1195,7 +1264,7 @@ export default function FileManagerPage() {
           ) : null}
           <button
             onClick={openUploadDialog}
-            disabled={!currentFolder}
+            disabled={!currentFolder || (isPublicScope && !isSuperAdmin)}
             className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
             <svg
               viewBox="0 0 24 24"
@@ -1211,7 +1280,11 @@ export default function FileManagerPage() {
           </button>
           <button
             onClick={openCreateSubDialog}
-            disabled={!branchId || !currentFolder}
+            disabled={
+              (!isPublicScope && !branchId) ||
+              !currentFolder ||
+              (isPublicScope && !isSuperAdmin)
+            }
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-200 dark:hover:bg-slate-900">
             <span className="text-base leading-none">+</span>
             New Folder
@@ -1298,25 +1371,56 @@ export default function FileManagerPage() {
           </button>
         </div>
 
-        <div className="w-full md:w-auto">
-          <select
-            value={branchId ?? ""}
-            onChange={(e) =>
-              setBranchId(e.target.value ? Number(e.target.value) : null)
-            }
-            disabled={!isSuperAdmin}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100 md:min-w-56">
-            {branches.length === 0 ? (
-              <option value="">No branches</option>
-            ) : null}
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
+        <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 dark:border-brand-800 dark:bg-brand-950">
+            <button
+              type="button"
+              onClick={() => switchScope("branch")}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                !isPublicScope
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
+              }`}>
+              Branch
+            </button>
+            <button
+              type="button"
+              onClick={() => switchScope("public")}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                isPublicScope
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
+              }`}>
+              Public
+            </button>
+          </div>
+
+          {isPublicScope ? null : (
+            <select
+              value={branchId ?? ""}
+              onChange={(e) =>
+                setBranchId(e.target.value ? Number(e.target.value) : null)
+              }
+              disabled={!isSuperAdmin || branches.length === 0}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 dark:border-brand-800 dark:bg-brand-950 dark:text-slate-100 md:min-w-56">
+              <option value="">
+                {branches.length === 0 ? "No branches" : "Select a branch…"}
               </option>
-            ))}
-          </select>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
+
+      {!isPublicScope && !branchId ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+          Select a branch to browse its files, or switch to the Public tab.
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-2 text-xs text-slate-600">
         <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white">
@@ -1404,27 +1508,33 @@ export default function FileManagerPage() {
                                         label: "Open",
                                         onClick: () =>
                                           openFolder({
-                                            branch_id: branchId ?? 0,
+                                            branch_id: isPublicScope
+                                          ? null
+                                          : branchId,
                                             name: e.name,
                                             relative_path: e.relative_path,
                                           }),
                                       },
                                       { type: "separator" },
-                                      {
-                                        label: "Copy",
-                                        onClick: () => copyEntry(e),
-                                      },
-                                      {
-                                        label: "Cut",
-                                        onClick: () => cutEntry(e),
-                                      },
-                                      {
-                                        label: "Paste",
-                                        disabled: !clipboard,
-                                        onClick: () =>
-                                          void pasteInto(e.relative_path),
-                                      },
-                                      ...(isSuperAdmin || isBranchManager
+                                      ...(canCopyCutHere
+                                        ? ([
+                                            {
+                                              label: "Copy",
+                                              onClick: () => copyEntry(e),
+                                            },
+                                            {
+                                              label: "Cut",
+                                              onClick: () => cutEntry(e),
+                                            },
+                                            {
+                                              label: "Paste",
+                                              disabled: !clipboard,
+                                              onClick: () =>
+                                                void pasteInto(e.relative_path),
+                                            },
+                                          ] satisfies ActionDropdownItem[])
+                                        : ([] satisfies ActionDropdownItem[])),
+                                      ...(canManageHere
                                         ? ([
                                             { type: "separator" },
                                             {
@@ -1451,22 +1561,33 @@ export default function FileManagerPage() {
                                       {
                                         label: "Edit",
                                         onClick: () => editFile(e),
-                                        disabled: isEditDisabledForFile(e),
+                                        disabled:
+                                          !canEditFilesHere ||
+                                          isEditDisabledForFile(e),
                                       },
-                                      {
-                                        label: "Share",
-                                        onClick: () => openShareDialog(e),
-                                      },
+                                      ...(!isPublicScope
+                                        ? ([
+                                            {
+                                              label: "Share",
+                                              onClick: () =>
+                                                openShareDialog(e),
+                                            },
+                                          ] satisfies ActionDropdownItem[])
+                                        : ([] satisfies ActionDropdownItem[])),
                                       { type: "separator" },
-                                      {
-                                        label: "Copy",
-                                        onClick: () => copyEntry(e),
-                                      },
-                                      {
-                                        label: "Cut",
-                                        onClick: () => cutEntry(e),
-                                      },
-                                      ...(isSuperAdmin || isBranchManager
+                                      ...(canCopyCutHere
+                                        ? ([
+                                            {
+                                              label: "Copy",
+                                              onClick: () => copyEntry(e),
+                                            },
+                                            {
+                                              label: "Cut",
+                                              onClick: () => cutEntry(e),
+                                            },
+                                          ] satisfies ActionDropdownItem[])
+                                        : ([] satisfies ActionDropdownItem[])),
+                                      ...(canManageHere
                                         ? ([
                                             { type: "separator" },
                                             {
@@ -1488,7 +1609,9 @@ export default function FileManagerPage() {
                     <td
                       className="sfms-td py-10 text-center text-sm text-slate-500 dark:text-slate-400"
                       colSpan={5}>
-                      No files or folders yet.
+                      {!isPublicScope && !branchId
+                        ? "Select a branch to view files."
+                        : "No files or folders yet."}
                     </td>
                   </tr>
                 ) : (
@@ -1513,32 +1636,36 @@ export default function FileManagerPage() {
                             items={
                               [
                                 { label: "Open", onClick: () => openFolder(f) },
-                                { type: "separator" },
-                                {
-                                  label: "Copy",
-                                  onClick: () =>
-                                    copyEntry({
-                                      name: f.name,
-                                      entry_type: "folder",
-                                      relative_path: f.relative_path,
-                                    } as FolderEntryOut),
-                                },
-                                {
-                                  label: "Cut",
-                                  onClick: () =>
-                                    cutEntry({
-                                      name: f.name,
-                                      entry_type: "folder",
-                                      relative_path: f.relative_path,
-                                    } as FolderEntryOut),
-                                },
-                                {
-                                  label: "Paste",
-                                  disabled: !clipboard,
-                                  onClick: () =>
-                                    void pasteInto(f.relative_path),
-                                },
-                                ...(isBranchManager
+                                ...(canCopyCutHere
+                                  ? ([
+                                      { type: "separator" },
+                                      {
+                                        label: "Copy",
+                                        onClick: () =>
+                                          copyEntry({
+                                            name: f.name,
+                                            entry_type: "folder",
+                                            relative_path: f.relative_path,
+                                          } as FolderEntryOut),
+                                      },
+                                      {
+                                        label: "Cut",
+                                        onClick: () =>
+                                          cutEntry({
+                                            name: f.name,
+                                            entry_type: "folder",
+                                            relative_path: f.relative_path,
+                                          } as FolderEntryOut),
+                                      },
+                                      {
+                                        label: "Paste",
+                                        disabled: !clipboard,
+                                        onClick: () =>
+                                          void pasteInto(f.relative_path),
+                                      },
+                                    ] satisfies ActionDropdownItem[])
+                                  : ([] satisfies ActionDropdownItem[])),
+                                ...(isBranchManager && !isPublicScope
                                   ? ([
                                       {
                                         label: "Assign folder",
@@ -1546,7 +1673,7 @@ export default function FileManagerPage() {
                                       },
                                     ] satisfies ActionDropdownItem[])
                                   : ([] satisfies ActionDropdownItem[])),
-                                ...(isSuperAdmin || isBranchManager
+                                ...(canManageHere
                                   ? ([
                                       { type: "separator" },
                                       {
@@ -1639,24 +1766,33 @@ export default function FileManagerPage() {
                                     label: "Open",
                                     onClick: () =>
                                       openFolder({
-                                        branch_id: branchId ?? 0,
+                                        branch_id: isPublicScope
+                                          ? null
+                                          : branchId,
                                         name: e.name,
                                         relative_path: e.relative_path,
                                       }),
                                   },
                                   { type: "separator" },
-                                  {
-                                    label: "Copy",
-                                    onClick: () => copyEntry(e),
-                                  },
-                                  { label: "Cut", onClick: () => cutEntry(e) },
-                                  {
-                                    label: "Paste",
-                                    disabled: !clipboard,
-                                    onClick: () =>
-                                      void pasteInto(e.relative_path),
-                                  },
-                                  ...(isSuperAdmin || isBranchManager
+                                  ...(canCopyCutHere
+                                    ? ([
+                                        {
+                                          label: "Copy",
+                                          onClick: () => copyEntry(e),
+                                        },
+                                        {
+                                          label: "Cut",
+                                          onClick: () => cutEntry(e),
+                                        },
+                                        {
+                                          label: "Paste",
+                                          disabled: !clipboard,
+                                          onClick: () =>
+                                            void pasteInto(e.relative_path),
+                                        },
+                                      ] satisfies ActionDropdownItem[])
+                                    : ([] satisfies ActionDropdownItem[])),
+                                  ...(canManageHere
                                     ? ([
                                         { type: "separator" },
                                         {
@@ -1680,19 +1816,32 @@ export default function FileManagerPage() {
                                   {
                                     label: "Edit",
                                     onClick: () => editFile(e),
-                                    disabled: isEditDisabledForFile(e),
+                                    disabled:
+                                      !canEditFilesHere ||
+                                      isEditDisabledForFile(e),
                                   },
-                                  {
-                                    label: "Share",
-                                    onClick: () => openShareDialog(e),
-                                  },
+                                  ...(!isPublicScope
+                                    ? ([
+                                        {
+                                          label: "Share",
+                                          onClick: () => openShareDialog(e),
+                                        },
+                                      ] satisfies ActionDropdownItem[])
+                                    : ([] satisfies ActionDropdownItem[])),
                                   { type: "separator" },
-                                  {
-                                    label: "Copy",
-                                    onClick: () => copyEntry(e),
-                                  },
-                                  { label: "Cut", onClick: () => cutEntry(e) },
-                                  ...(isSuperAdmin || isBranchManager
+                                  ...(canCopyCutHere
+                                    ? ([
+                                        {
+                                          label: "Copy",
+                                          onClick: () => copyEntry(e),
+                                        },
+                                        {
+                                          label: "Cut",
+                                          onClick: () => cutEntry(e),
+                                        },
+                                      ] satisfies ActionDropdownItem[])
+                                    : ([] satisfies ActionDropdownItem[])),
+                                  ...(canManageHere
                                     ? ([
                                         { type: "separator" },
                                         {
@@ -1715,7 +1864,9 @@ export default function FileManagerPage() {
               f.name.toLowerCase().includes(q.trim().toLowerCase()),
             ).length === 0 ? (
             <div className="px-2 py-10 text-center text-sm text-slate-500">
-              No files or folders yet.
+              {!isPublicScope && !branchId
+                ? "Select a branch to view files."
+                : "No files or folders yet."}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1746,31 +1897,36 @@ export default function FileManagerPage() {
                         items={
                           [
                             { label: "Open", onClick: () => openFolder(f) },
-                            { type: "separator" },
-                            {
-                              label: "Copy",
-                              onClick: () =>
-                                copyEntry({
-                                  name: f.name,
-                                  entry_type: "folder",
-                                  relative_path: f.relative_path,
-                                } as FolderEntryOut),
-                            },
-                            {
-                              label: "Cut",
-                              onClick: () =>
-                                cutEntry({
-                                  name: f.name,
-                                  entry_type: "folder",
-                                  relative_path: f.relative_path,
-                                } as FolderEntryOut),
-                            },
-                            {
-                              label: "Paste",
-                              disabled: !clipboard,
-                              onClick: () => void pasteInto(f.relative_path),
-                            },
-                            ...(isBranchManager
+                            ...(canCopyCutHere
+                              ? ([
+                                  { type: "separator" },
+                                  {
+                                    label: "Copy",
+                                    onClick: () =>
+                                      copyEntry({
+                                        name: f.name,
+                                        entry_type: "folder",
+                                        relative_path: f.relative_path,
+                                      } as FolderEntryOut),
+                                  },
+                                  {
+                                    label: "Cut",
+                                    onClick: () =>
+                                      cutEntry({
+                                        name: f.name,
+                                        entry_type: "folder",
+                                        relative_path: f.relative_path,
+                                      } as FolderEntryOut),
+                                  },
+                                  {
+                                    label: "Paste",
+                                    disabled: !clipboard,
+                                    onClick: () =>
+                                      void pasteInto(f.relative_path),
+                                  },
+                                ] satisfies ActionDropdownItem[])
+                              : ([] satisfies ActionDropdownItem[])),
+                            ...(isBranchManager && !isPublicScope
                               ? ([
                                   {
                                     label: "Assign folder",
@@ -1778,7 +1934,7 @@ export default function FileManagerPage() {
                                   },
                                 ] satisfies ActionDropdownItem[])
                               : ([] satisfies ActionDropdownItem[])),
-                            ...(isSuperAdmin || isBranchManager
+                            ...(canManageHere
                               ? ([
                                   { type: "separator" },
                                   {

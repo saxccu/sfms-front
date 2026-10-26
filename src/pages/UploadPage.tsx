@@ -13,7 +13,7 @@ type FileOut = {
   file_path: string;
   file_type: string | null;
   file_size: number;
-  branch_id: number;
+  branch_id: number | null;
   uploaded_by: number;
 };
 

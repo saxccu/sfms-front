@@ -11,7 +11,7 @@ export type UserOut = {
   username?: string | null
   email: string
   role: string
-  branch_id: number
+  branch_id: number | null
 }
 
 export async function login(username: string, password: string): Promise<TokenResponse> {
